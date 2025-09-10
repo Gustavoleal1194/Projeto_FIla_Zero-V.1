@@ -6,6 +6,8 @@
   NODE_VERSION = "18"
   GENERATE_SOURCEMAP = "false"
   PUBLIC_URL = "/"
+  CI = "false"
+  DISABLE_ESLINT_PLUGIN = "true"
 
 [[redirects]]
   from = "/*"
