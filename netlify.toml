@@ -4,6 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  GENERATE_SOURCEMAP = "false"
+  PUBLIC_URL = "/"
 
 # Redirects para SPA
 [[redirects]]
