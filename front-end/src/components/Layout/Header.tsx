@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { ShoppingCart, User, LogOut, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Menu, X, Utensils } from 'lucide-react';
 
 const Header: React.FC = () => {
     const { usuario, logout, isAuthenticated } = useAuth();
@@ -107,6 +107,19 @@ const Header: React.FC = () => {
                                             <div className="font-medium">{usuario?.nome}</div>
                                             <div className="text-gray-500">{usuario?.email}</div>
                                         </div>
+
+                                        {/* Opção para ir ao cardápio do evento */}
+                                        {usuario?.eventoVinculado && (
+                                            <Link
+                                                to={`/evento/${usuario.eventoVinculado.id}/menu`}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Utensils className="w-4 h-4 mr-2" />
+                                                Cardápio do Evento
+                                            </Link>
+                                        )}
+
                                         <button
                                             onClick={handleLogout}
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -183,6 +196,18 @@ const Header: React.FC = () => {
                                     >
                                         KDS
                                     </Link>
+
+                                    {/* Opção para ir ao cardápio do evento no mobile */}
+                                    {usuario?.eventoVinculado && (
+                                        <Link
+                                            to={`/evento/${usuario.eventoVinculado.id}/menu`}
+                                            className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors flex items-center"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Utensils className="w-4 h-4 mr-2" />
+                                            Cardápio do Evento
+                                        </Link>
+                                    )}
                                 </>
                             )}
                         </nav>

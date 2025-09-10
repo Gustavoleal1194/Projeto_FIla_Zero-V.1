@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useEvent } from '../contexts/EventContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useQuery } from '@tanstack/react-query';
 import { demoService } from '../services/demoService';
 import {
     ShoppingCart,
@@ -14,20 +14,22 @@ import {
     Phone,
     Mail,
     ArrowLeft,
-    Users,
-    Star,
     Plus,
     Minus,
-    QrCode
+    QrCode,
+    LogOut,
+    AlertCircle,
+    User,
+    Package
 } from 'lucide-react';
 import { QRCodeGenerator } from '../components/QRCode/QRCodeGenerator';
 
-const EventoHome: React.FC = () => {
+const ConsumerApp: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
     const navigate = useNavigate();
     const { eventoAtual, loading: eventoLoading, error: eventoError, carregarEvento } = useEvent();
     const { tema } = useTheme();
-    const { isAuthenticated, usuario } = useAuth();
+    const { isAuthenticated, logout, usuario } = useAuth();
     const { addItem, items, updateQuantity, removeItem, getTotalPrice } = useCart();
 
     // Buscar produtos do evento
@@ -52,38 +54,25 @@ const EventoHome: React.FC = () => {
         if (eventoId && eventoAtual?.id !== eventoId) {
             carregarEvento(eventoId);
         }
-    }, [eventoId, carregarEvento, eventoAtual?.id]);
+    }, [eventoId, eventoAtual, carregarEvento]);
 
-    if (eventoLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4"
-                        style={{ borderColor: tema.corPrimaria }}></div>
-                    <p className="text-gray-600">Carregando evento...</p>
-                </div>
-            </div>
-        );
-    }
+    // Redirecionar se não estiver logado ou se o evento não for o vinculado
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate(`/evento/${eventoId}/login`, { replace: true });
+            return;
+        }
 
-    if (eventoError || !eventoAtual) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Evento não encontrado</h1>
-                    <p className="text-gray-600 mb-4">O evento que você está procurando não existe.</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-2 rounded-lg text-white font-medium"
-                        style={{ backgroundColor: tema.corPrimaria }}
-                    >
-                        Voltar ao início
-                    </button>
-                </div>
-            </div>
-        );
-    }
+        // Se o usuário tem evento vinculado e não é o evento atual, redirecionar
+        if (usuario?.eventoVinculado && usuario.eventoVinculado.id !== eventoId) {
+            navigate(`/evento/${usuario.eventoVinculado.id}/menu`, { replace: true });
+        }
+    }, [isAuthenticated, eventoId, navigate, usuario]);
+
+    const handleLogout = () => {
+        logout();
+        navigate(`/evento/${eventoId}/login`);
+    };
 
     const getProdutosPorCategoria = (categoriaId: string) => {
         return produtos?.filter(produto => produto.categoriaId === categoriaId) || [];
@@ -110,6 +99,41 @@ const EventoHome: React.FC = () => {
         }
     };
 
+    if (eventoLoading || produtosLoading || categoriasLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando cardápio...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (eventoError || !eventoAtual) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="text-red-500 mb-4">
+                        <AlertCircle className="w-16 h-16 mx-auto" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                        Evento não encontrado
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                        O evento que você está tentando acessar não existe ou foi removido.
+                    </p>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                    >
+                        Voltar ao início
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header do Evento */}
@@ -118,7 +142,7 @@ const EventoHome: React.FC = () => {
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => navigate('/')}
+                                onClick={() => navigate(`/evento/${eventoId}/login`)}
                                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                             >
                                 <ArrowLeft className="h-5 w-5 text-gray-600" />
@@ -139,6 +163,24 @@ const EventoHome: React.FC = () => {
                         </div>
 
                         <div className="flex items-center space-x-4">
+                            {/* Perfil do usuário */}
+                            <button
+                                onClick={() => navigate(`/evento/${eventoId}/perfil`)}
+                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                title="Meu Perfil"
+                            >
+                                <User className="h-6 w-6 text-gray-600" />
+                            </button>
+
+                            {/* Pedidos */}
+                            <button
+                                onClick={() => navigate(`/evento/${eventoId}/pedidos`)}
+                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                title="Meus Pedidos"
+                            >
+                                <Package className="h-6 w-6 text-gray-600" />
+                            </button>
+
                             {/* QR Code */}
                             <button
                                 onClick={() => {
@@ -207,120 +249,89 @@ const EventoHome: React.FC = () => {
                                 <p className="text-sm text-gray-600">{eventoAtual.endereco}</p>
                             </div>
                         </div>
-
-                        {eventoAtual.telefone && (
-                            <div className="flex items-center space-x-3">
-                                <Phone className="h-5 w-5 text-gray-400" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Telefone</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.telefone}</p>
-                                </div>
+                        <div className="flex items-center space-x-3">
+                            <Clock className="h-5 w-5 text-gray-400" />
+                            <div>
+                                <h3 className="font-medium text-gray-900">Horário</h3>
+                                <p className="text-sm text-gray-600">{eventoAtual.dataInicio} - {eventoAtual.dataFim}</p>
                             </div>
-                        )}
-
-                        {eventoAtual.email && (
-                            <div className="flex items-center space-x-3">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Email</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.email}</p>
-                                </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <Phone className="h-5 w-5 text-gray-400" />
+                            <div>
+                                <h3 className="font-medium text-gray-900">Contato</h3>
+                                <p className="text-sm text-gray-600">{eventoAtual.telefone}</p>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Cardápio */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Cardápio</h2>
-                    <p className="text-gray-600">Escolha seus itens favoritos</p>
-                </div>
+            <div className="py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Cardápio</h2>
 
-                {categoriasLoading ? (
-                    <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4"
-                            style={{ borderColor: tema.corPrimaria }}></div>
-                        <p className="text-gray-600">Carregando cardápio...</p>
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        {categorias?.map((categoria) => {
-                            const produtosCategoria = getProdutosPorCategoria(categoria.id);
+                    {categoriasLoading ? (
+                        <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Carregando categorias...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-8">
+                            {categorias?.map((categoria) => {
+                                const produtosCategoria = getProdutosPorCategoria(categoria.id);
 
-                            if (produtosCategoria.length === 0) return null;
+                                if (produtosCategoria.length === 0) return null;
 
-                            return (
-                                <div key={categoria.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div
-                                        className="px-6 py-4 text-white"
-                                        style={{ backgroundColor: categoria.cor }}
-                                    >
-                                        <h3 className="text-xl font-bold">{categoria.nome}</h3>
-                                        <p className="text-sm opacity-90">{categoria.descricao}</p>
-                                    </div>
+                                return (
+                                    <div key={categoria.id} className="bg-white rounded-lg shadow-sm p-6">
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                            <span
+                                                className="w-4 h-4 rounded-full mr-3"
+                                                style={{ backgroundColor: categoria.cor }}
+                                            ></span>
+                                            {categoria.nome}
+                                        </h3>
 
-                                    <div className="p-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {produtosCategoria.map((produto) => {
                                                 const quantidadeNoCarrinho = getQuantidadeNoCarrinho(produto.id);
 
                                                 return (
-                                                    <div key={produto.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                                                        <div className="aspect-w-16 aspect-h-9">
-                                                            <img
-                                                                src={produto.imagemUrl}
-                                                                alt={produto.nome}
-                                                                className="w-full h-48 object-cover"
-                                                            />
+                                                    <div key={produto.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h4 className="font-medium text-gray-900">{produto.nome}</h4>
+                                                            <span className="text-lg font-bold text-blue-600">
+                                                                R$ {produto.preco.toFixed(2)}
+                                                            </span>
                                                         </div>
 
-                                                        <div className="p-4">
-                                                            <h4 className="font-semibold text-gray-900 mb-2">{produto.nome}</h4>
-                                                            <p className="text-sm text-gray-600 mb-3">{produto.descricao}</p>
+                                                        <p className="text-sm text-gray-600 mb-3">{produto.descricao}</p>
 
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <span className="text-lg font-bold" style={{ color: tema.corPrimaria }}>
-                                                                    R$ {produto.preco.toFixed(2)}
-                                                                </span>
-                                                                <div className="flex items-center text-sm text-gray-500">
-                                                                    <Clock className="h-4 w-4 mr-1" />
-                                                                    {produto.tempoPreparoMinutos} min
-                                                                </div>
-                                                            </div>
-
+                                                        <div className="flex items-center justify-between">
                                                             {quantidadeNoCarrinho > 0 ? (
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <button
-                                                                            onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho - 1)}
-                                                                            className="p-1 rounded-full hover:bg-gray-100"
-                                                                        >
-                                                                            <Minus className="h-4 w-4" />
-                                                                        </button>
-                                                                        <span className="w-8 text-center font-medium">{quantidadeNoCarrinho}</span>
-                                                                        <button
-                                                                            onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho + 1)}
-                                                                            className="p-1 rounded-full hover:bg-gray-100"
-                                                                        >
-                                                                            <Plus className="h-4 w-4" />
-                                                                        </button>
-                                                                    </div>
+                                                                <div className="flex items-center space-x-2">
                                                                     <button
-                                                                        onClick={() => removerDoCarrinho(produto.id)}
-                                                                        className="text-red-500 text-sm hover:text-red-700"
+                                                                        onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho - 1)}
+                                                                        className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200"
                                                                     >
-                                                                        Remover
+                                                                        <Minus className="w-4 h-4" />
+                                                                    </button>
+                                                                    <span className="w-8 text-center font-medium">{quantidadeNoCarrinho}</span>
+                                                                    <button
+                                                                        onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho + 1)}
+                                                                        className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200"
+                                                                    >
+                                                                        <Plus className="w-4 h-4" />
                                                                     </button>
                                                                 </div>
                                                             ) : (
                                                                 <button
                                                                     onClick={() => adicionarAoCarrinho(produto)}
-                                                                    className="w-full py-2 px-4 rounded-lg text-white font-medium transition-colors"
-                                                                    style={{ backgroundColor: tema.corPrimaria }}
+                                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                                                 >
-                                                                    Adicionar ao Carrinho
+                                                                    Adicionar
                                                                 </button>
                                                             )}
                                                         </div>
@@ -329,11 +340,11 @@ const EventoHome: React.FC = () => {
                                             })}
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Botão Flutuante do Carrinho */}
@@ -379,4 +390,4 @@ const EventoHome: React.FC = () => {
     );
 };
 
-export default EventoHome;
+export default ConsumerApp;

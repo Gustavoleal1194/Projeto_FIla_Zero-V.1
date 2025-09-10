@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { usePayment } from '../contexts/PaymentContext';
+import { PaymentModal } from '../components/Payment/PaymentModal';
 import {
     Plus,
     Minus,
@@ -25,8 +27,10 @@ const Cart: React.FC = () => {
         getTotalPrice
     } = useCart();
     const { isAuthenticated } = useAuth();
+    const { initializePayment } = usePayment();
     const navigate = useNavigate();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'pix' | 'cartao' | 'dinheiro'>('pix');
 
     const handleQuantityChange = (produtoId: string, newQuantity: number) => {
@@ -53,19 +57,18 @@ const Cart: React.FC = () => {
             return;
         }
 
-        setIsCheckingOut(true);
-        try {
-            // Simular processo de checkout
-            await new Promise(resolve => setTimeout(resolve, 2000));
+        // Inicializar sistema de pagamento
+        await initializePayment();
 
-            toast.success('Pedido realizado com sucesso!');
-            clearCart();
-            navigate('/pedidos');
-        } catch (error) {
-            toast.error('Erro ao processar pedido');
-        } finally {
-            setIsCheckingOut(false);
-        }
+        // Abrir modal de pagamento
+        setShowPaymentModal(true);
+    };
+
+    const handlePaymentSuccess = (transactionId: string) => {
+        toast.success('Pagamento realizado com sucesso!');
+        clearCart();
+        setShowPaymentModal(false);
+        navigate('/pedidos');
     };
 
     if (items.length === 0) {
@@ -282,6 +285,14 @@ const Cart: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Pagamento */}
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                onSuccess={handlePaymentSuccess}
+                pedidoId={`PEDIDO_${Date.now()}`}
+            />
         </div>
     );
 };

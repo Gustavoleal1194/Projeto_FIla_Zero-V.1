@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { EventProvider } from './contexts/EventContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { PaymentProvider } from './contexts/PaymentContext';
 
 // Components
 import Header from './components/Layout/Header';
@@ -20,6 +21,14 @@ import Cart from './pages/Cart';
 import EventoPage from './pages/EventoPage';
 import EventoHome from './pages/EventoHome';
 import DemoLogin from './pages/DemoLogin';
+import { QRCodeAccess } from './pages/QRCodeAccess';
+import InstitutionalHome from './pages/InstitutionalHome';
+import ConsumerLogin from './pages/ConsumerLogin';
+import ConsumerApp from './pages/ConsumerApp';
+import ConsumerCart from './pages/ConsumerCart';
+import ConsumerProfile from './pages/ConsumerProfile';
+import ConsumerOrders from './pages/ConsumerOrders';
+import ClientLogin from './pages/ClientLogin';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -39,60 +48,75 @@ function App() {
                 <AuthProvider>
                     <EventProvider>
                         <ThemeProvider>
-                            <CartProvider>
-                                <Router>
-                                    <div className="min-h-screen bg-gray-50">
-                                        <Header />
+                            <PaymentProvider>
+                                <CartProvider>
+                                    <Router>
+                                        <div className="min-h-screen bg-gray-50">
+                                            <Header />
 
-                                        <main>
-                                            <Routes>
-                                                <Route path="/" element={<Home />} />
-                                                <Route path="/login" element={<Login />} />
-                                                <Route path="/demo" element={<DemoLogin />} />
-                                                <Route path="/carrinho" element={<Cart />} />
+                                            <main>
+                                                <Routes>
+                                                    {/* Home Institucional */}
+                                                    <Route path="/" element={<InstitutionalHome />} />
+                                                    <Route path="/demo" element={<DemoLogin />} />
 
-                                                {/* Rotas de Evento */}
-                                                <Route path="/evento/:eventoId" element={<EventoHome />} />
-                                                <Route path="/evento/:eventoId/menu" element={<EventoHome />} />
-                                                <Route path="/evento/:eventoId/carrinho" element={<div>Carrinho do Evento (em desenvolvimento)</div>} />
-                                                <Route path="/evento/:eventoId/pedidos" element={<div>Pedidos do Evento (em desenvolvimento)</div>} />
-                                                <Route path="/evento/:eventoId/kds" element={<div>KDS do Evento (em desenvolvimento)</div>} />
+                                                    {/* App do Consumidor */}
+                                                    <Route path="/evento/:eventoId/login" element={<ConsumerLogin />} />
+                                                    <Route path="/evento/:eventoId" element={<ConsumerApp />} />
+                                                    <Route path="/evento/:eventoId/menu" element={<ConsumerApp />} />
+                                                    <Route path="/evento/:eventoId/carrinho" element={<ConsumerCart />} />
+                                                    <Route path="/evento/:eventoId/perfil" element={<ConsumerProfile />} />
+                                                    <Route path="/evento/:eventoId/pedidos" element={<ConsumerOrders />} />
 
-                                                {/* Rotas protegidas serão adicionadas aqui */}
-                                                <Route path="/dashboard" element={<div>Dashboard (em desenvolvimento)</div>} />
-                                                <Route path="/pedidos" element={<div>Pedidos (em desenvolvimento)</div>} />
-                                                <Route path="/kds" element={<div>KDS (em desenvolvimento)</div>} />
-                                                <Route path="/eventos" element={<div>Eventos (em desenvolvimento)</div>} />
-                                            </Routes>
-                                        </main>
+                                                    {/* KDS */}
+                                                    <Route path="/kds/:eventoId" element={<div>KDS do Evento (em desenvolvimento)</div>} />
 
-                                        <Toaster
-                                            position="top-right"
-                                            toastOptions={{
-                                                duration: 4000,
-                                                style: {
-                                                    background: '#363636',
-                                                    color: '#fff',
-                                                },
-                                                success: {
-                                                    duration: 3000,
-                                                    iconTheme: {
-                                                        primary: '#10B981',
-                                                        secondary: '#fff',
+                                                    {/* Login do Consumidor */}
+                                                    <Route path="/login" element={<ConsumerLogin />} />
+
+                                                    {/* Login para clientes (gestores) */}
+                                                    <Route path="/client-login" element={<ClientLogin />} />
+
+                                                    {/* Rotas antigas (manter para compatibilidade) */}
+                                                    <Route path="/carrinho" element={<Cart />} />
+                                                    <Route path="/qr/:eventoId" element={<QRCodeAccess />} />
+
+                                                    {/* Rotas protegidas serão adicionadas aqui */}
+                                                    <Route path="/dashboard" element={<div>Dashboard (em desenvolvimento)</div>} />
+                                                    <Route path="/pedidos" element={<div>Pedidos (em desenvolvimento)</div>} />
+                                                    <Route path="/kds" element={<div>KDS (em desenvolvimento)</div>} />
+                                                    <Route path="/eventos" element={<div>Eventos (em desenvolvimento)</div>} />
+                                                </Routes>
+                                            </main>
+
+                                            <Toaster
+                                                position="top-right"
+                                                toastOptions={{
+                                                    duration: 4000,
+                                                    style: {
+                                                        background: '#363636',
+                                                        color: '#fff',
                                                     },
-                                                },
-                                                error: {
-                                                    duration: 5000,
-                                                    iconTheme: {
-                                                        primary: '#EF4444',
-                                                        secondary: '#fff',
+                                                    success: {
+                                                        duration: 3000,
+                                                        iconTheme: {
+                                                            primary: '#10B981',
+                                                            secondary: '#fff',
+                                                        },
                                                     },
-                                                },
-                                            }}
-                                        />
-                                    </div>
-                                </Router>
-                            </CartProvider>
+                                                    error: {
+                                                        duration: 5000,
+                                                        iconTheme: {
+                                                            primary: '#EF4444',
+                                                            secondary: '#fff',
+                                                        },
+                                                    },
+                                                }}
+                                            />
+                                        </div>
+                                    </Router>
+                                </CartProvider>
+                            </PaymentProvider>
                         </ThemeProvider>
                     </EventProvider>
                 </AuthProvider>

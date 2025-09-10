@@ -80,10 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             toast.success('Login realizado com sucesso!');
 
-            // Redirecionar para o evento específico após login
-            if (response.usuario.eventoVinculado) {
-                window.location.href = `/evento/${response.usuario.eventoVinculado.id}`;
-            }
+            // Não redirecionar automaticamente aqui - deixar para o componente decidir
 
             return true;
         } catch (error: any) {

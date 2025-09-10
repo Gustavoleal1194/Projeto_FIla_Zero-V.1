@@ -271,6 +271,16 @@ export const usuariosDemo: Usuario[] = [
         tipo: 'Consumidor',
         emailConfirmado: true,
         ultimoLogin: new Date().toISOString()
+    },
+    {
+        id: '5',
+        nome: 'Gustavo Idalgo Capistrano Leal',
+        email: 'gustavo@cliente.com',
+        telefone: '(11) 99999-5555',
+        tipo: 'Consumidor',
+        emailConfirmado: true,
+        ultimoLogin: new Date().toISOString(),
+        eventoVinculado: eventosDemo[0] // Festival de Rock
     }
 ];
 
@@ -279,5 +289,6 @@ export const credenciaisDemo = {
     'joao@festivalrock.com': { senha: '123456', eventoId: '1' },
     'maria@feiragourmet.com': { senha: '123456', eventoId: '2' },
     'pedro@cliente.com': { senha: '123456', eventoId: '1' },
-    'ana@cliente.com': { senha: '123456', eventoId: '2' }
+    'ana@cliente.com': { senha: '123456', eventoId: '2' },
+    'gustavo@cliente.com': { senha: '123456', eventoId: '1' }
 };
