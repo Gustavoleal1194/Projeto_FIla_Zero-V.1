@@ -1,0 +1,154 @@
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import {
+    LoginRequest,
+    LoginResponse,
+    RegisterRequest,
+    Usuario,
+    Evento,
+    Produto,
+    Pedido,
+    CriarPedidoRequest,
+    ApiResponse
+} from '../types';
+
+class ApiService {
+    private api: AxiosInstance;
+
+    constructor() {
+        this.api = axios.create({
+            baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        // Interceptor para adicionar token de autenticação
+        this.api.interceptors.request.use(
+            (config) => {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                return config;
+            },
+            (error) => {
+                return Promise.reject(error);
+            }
+        );
+
+        // Interceptor para tratar respostas
+        this.api.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('usuario');
+                    window.location.href = '/login';
+                }
+                return Promise.reject(error);
+            }
+        );
+    }
+
+    // Autenticação
+    async login(credentials: LoginRequest): Promise<LoginResponse> {
+        const response: AxiosResponse<ApiResponse<LoginResponse>> = await this.api.post('/auth/login', credentials);
+        return response.data.data!;
+    }
+
+    async register(data: RegisterRequest): Promise<LoginResponse> {
+        const response: AxiosResponse<ApiResponse<LoginResponse>> = await this.api.post('/auth/register', data);
+        return response.data.data!;
+    }
+
+    async logout(): Promise<void> {
+        await this.api.post('/auth/logout');
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+    }
+
+    async getUsuarioAtual(): Promise<Usuario> {
+        const response: AxiosResponse<ApiResponse<Usuario>> = await this.api.get('/auth/me');
+        return response.data.data!;
+    }
+
+    // Eventos
+    async getEventos(): Promise<Evento[]> {
+        const response: AxiosResponse<ApiResponse<Evento[]>> = await this.api.get('/eventos');
+        return response.data.data!;
+    }
+
+    async getEvento(id: string): Promise<Evento> {
+        const response: AxiosResponse<ApiResponse<Evento>> = await this.api.get(`/eventos/${id}`);
+        return response.data.data!;
+    }
+
+    async getEventoById(id: string): Promise<Evento> {
+        const response: AxiosResponse<ApiResponse<Evento>> = await this.api.get(`/eventos/${id}`);
+        return response.data.data!;
+    }
+
+    // Produtos
+    async getProdutos(eventoId: string): Promise<Produto[]> {
+        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos?eventoId=${eventoId}`);
+        return response.data.data!;
+    }
+
+    async getProduto(id: string): Promise<Produto> {
+        const response: AxiosResponse<ApiResponse<Produto>> = await this.api.get(`/produtos/${id}`);
+        return response.data.data!;
+    }
+
+    // Pedidos
+    async criarPedido(pedido: CriarPedidoRequest): Promise<Pedido> {
+        const response: AxiosResponse<ApiResponse<Pedido>> = await this.api.post('/pedidos', pedido);
+        return response.data.data!;
+    }
+
+    async getPedidos(eventoId?: string): Promise<Pedido[]> {
+        const url = eventoId ? `/pedidos?eventoId=${eventoId}` : '/pedidos';
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(url);
+        return response.data.data!;
+    }
+
+    async getPedido(id: string): Promise<Pedido> {
+        const response: AxiosResponse<ApiResponse<Pedido>> = await this.api.get(`/pedidos/${id}`);
+        return response.data.data!;
+    }
+
+    async atualizarStatusPedido(id: string, status: string): Promise<Pedido> {
+        const response: AxiosResponse<ApiResponse<Pedido>> = await this.api.patch(`/pedidos/${id}/status`, { status });
+        return response.data.data!;
+    }
+
+    // KDS (Kitchen Display System)
+    async getPedidosKDS(eventoId: string): Promise<Pedido[]> {
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/pedidos?eventoId=${eventoId}`);
+        return response.data.data!;
+    }
+
+    async getPedidosParaKDS(eventoId: string): Promise<Pedido[]> {
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/pedidos?eventoId=${eventoId}`);
+        return response.data.data!;
+    }
+
+    async getProdutosByEvento(eventoId: string): Promise<Produto[]> {
+        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos?eventoId=${eventoId}`);
+        return response.data.data!;
+    }
+
+    async getPedidosByUsuario(): Promise<Pedido[]> {
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get('/pedidos/usuario');
+        return response.data.data!;
+    }
+
+    // Health Check
+    async healthCheck(): Promise<{ status: string; timestamp: string }> {
+        const response: AxiosResponse<{ status: string; timestamp: string }> = await this.api.get('/health');
+        return response.data;
+    }
+}
+
+export const apiService = new ApiService();
+export default apiService;
