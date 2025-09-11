@@ -16,6 +16,8 @@ namespace FilaZero.Domain.Interfaces
         IRepository<Pedido> Pedidos { get; }
         IRepository<ItemPedido> ItensPedido { get; }
         IRepository<Pagamento> Pagamentos { get; }
+        IRepository<PixCobranca> PixCobrancas { get; }
+        IRepository<PixWebhook> PixWebhooks { get; }
         
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

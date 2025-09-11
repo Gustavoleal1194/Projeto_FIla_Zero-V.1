@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { demoService } from '../services/demoService';
+import { apiService } from '../services/api';
 import {
     ArrowLeft,
     Clock,
@@ -42,6 +43,38 @@ interface Pedido {
     observacoes?: string;
     tempoEstimado?: number;
 }
+
+// Funções de mapeamento para converter dados da API
+const mapearStatusPedido = (status: string): 'pendente' | 'confirmado' | 'preparando' | 'pronto' | 'entregue' | 'cancelado' => {
+    const statusMap: Record<string, 'pendente' | 'confirmado' | 'preparando' | 'pronto' | 'entregue' | 'cancelado'> = {
+        'Pendente': 'pendente',
+        'Confirmado': 'confirmado',
+        'Preparando': 'preparando',
+        'Pronto': 'pronto',
+        'Entregue': 'entregue',
+        'Cancelado': 'cancelado'
+    };
+    return statusMap[status] || 'pendente';
+};
+
+const mapearMetodoPagamento = (metodo: string): 'pix' | 'cartao' | 'dinheiro' => {
+    const metodoMap: Record<string, 'pix' | 'cartao' | 'dinheiro'> = {
+        'PIX': 'pix',
+        'CartaoCredito': 'cartao',
+        'CartaoDebito': 'cartao',
+        'Dinheiro': 'dinheiro'
+    };
+    return metodoMap[metodo] || 'pix';
+};
+
+const mapearStatusPagamento = (status: string): 'pendente' | 'aprovado' | 'rejeitado' => {
+    const statusMap: Record<string, 'pendente' | 'aprovado' | 'rejeitado'> = {
+        'Pendente': 'pendente',
+        'Aprovado': 'aprovado',
+        'Rejeitado': 'rejeitado'
+    };
+    return statusMap[status] || 'pendente';
+};
 
 const ConsumerOrders: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
@@ -118,23 +151,53 @@ const ConsumerOrders: React.FC = () => {
             return;
         }
 
-        // Simular carregamento de pedidos
+        // Carregar pedidos reais da API
         const loadPedidos = async () => {
             setIsLoading(true);
             try {
-                // Simular delay da API
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                setPedidos(pedidosMock);
+                // Buscar pedidos do usuário atual
+                const pedidos = await apiService.getPedidosByUsuario();
+
+                if (pedidos && pedidos.length > 0) {
+                    // Converter pedidos da API para o formato esperado
+                    const pedidosConvertidos = pedidos.map((pedido: any) => ({
+                        id: pedido.id,
+                        numero: pedido.numeroPedido || pedido.id.substring(0, 8),
+                        status: mapearStatusPedido(pedido.status),
+                        data: pedido.dataCriacao,
+                        total: pedido.valorTotal,
+                        itens: pedido.itens?.map((item: any) => ({
+                            id: item.id,
+                            nome: item.produto?.nome || 'Produto',
+                            quantidade: item.quantidade,
+                            preco: item.precoUnitario,
+                            observacoes: item.observacoes
+                        })) || [],
+                        pagamento: {
+                            metodo: mapearMetodoPagamento(pedido.pagamento?.metodo),
+                            status: mapearStatusPagamento(pedido.pagamento?.status)
+                        },
+                        observacoes: pedido.observacoes,
+                        tempoEstimado: pedido.tempoEstimado
+                    }));
+
+                    setPedidos(pedidosConvertidos);
+                } else {
+                    // Fallback para dados mockados se a API falhar
+                    setPedidos(pedidosMock);
+                }
             } catch (error) {
                 console.error('Erro ao carregar pedidos:', error);
-                toast.error('Erro ao carregar pedidos');
+                // Fallback para dados mockados em caso de erro
+                setPedidos(pedidosMock);
+                toast.error('Erro ao carregar pedidos - mostrando dados de exemplo');
             } finally {
                 setIsLoading(false);
             }
         };
 
         loadPedidos();
-    }, [isAuthenticated, eventoId, navigate]);
+    }, [isAuthenticated, eventoId, navigate, usuario?.id]);
 
     const getStatusInfo = (status: string) => {
         const statusMap = {

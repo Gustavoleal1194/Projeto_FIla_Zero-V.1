@@ -20,6 +20,8 @@ namespace FilaZero.Infrastructure.Data
         public DbSet<Pedido> Pedidos { get; set; }
         public DbSet<ItemPedido> ItensPedido { get; set; }
         public DbSet<Pagamento> Pagamentos { get; set; }
+        public DbSet<PixCobranca> PixCobrancas { get; set; }
+        public DbSet<PixWebhook> PixWebhooks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -33,6 +35,8 @@ namespace FilaZero.Infrastructure.Data
             ConfigurePedido(modelBuilder);
             ConfigureItemPedido(modelBuilder);
             ConfigurePagamento(modelBuilder);
+            ConfigurePixCobranca(modelBuilder);
+            ConfigurePixWebhook(modelBuilder);
         }
 
         private void ConfigureUsuario(ModelBuilder modelBuilder)
@@ -186,6 +190,48 @@ namespace FilaZero.Infrastructure.Data
                     .WithOne(p => p.Pagamento)
                     .HasForeignKey<Pagamento>(e => e.PedidoId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        private void ConfigurePixCobranca(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PixCobranca>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TxId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PspId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Valor).IsRequired().HasColumnType("decimal(10,2)");
+                entity.Property(e => e.Descricao).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.ChavePix).HasMaxLength(100);
+                entity.Property(e => e.QrCode).HasMaxLength(1000);
+                entity.Property(e => e.QrCodeBase64).HasMaxLength(5000);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.IdPagamento).HasMaxLength(100);
+                entity.Property(e => e.DadosWebhook).HasMaxLength(1000);
+
+                entity.HasIndex(e => e.TxId).IsUnique();
+                entity.HasIndex(e => e.PedidoId);
+
+                entity.HasOne(e => e.Pedido)
+                    .WithMany()
+                    .HasForeignKey(e => e.PedidoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        private void ConfigurePixWebhook(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PixWebhook>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TxId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PspId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Evento).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.ErroProcessamento).HasMaxLength(500);
+
+                entity.HasIndex(e => e.TxId);
+                entity.HasIndex(e => e.Processado);
             });
         }
     }

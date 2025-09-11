@@ -67,6 +67,11 @@ Console.WriteLine("✅ Serviços de segurança registrados");
 builder.Services.AddScoped<FilaZero.Domain.Interfaces.Services.IPagamentoService, FilaZero.Application.Services.PagamentoService>();
 Console.WriteLine("✅ PagamentoService registrado");
 
+// Registrar serviços PIX
+builder.Services.AddHttpClient<FilaZero.Application.Services.IGerencianetService, FilaZero.Application.Services.GerencianetService>();
+builder.Services.AddScoped<FilaZero.Application.Services.IPixService, FilaZero.Application.Services.PixService>();
+Console.WriteLine("✅ Serviços PIX registrados");
+
 // Registrar serviços de cache e logging
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ICacheService, CacheService>();

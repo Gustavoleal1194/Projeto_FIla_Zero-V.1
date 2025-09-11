@@ -4,6 +4,8 @@ import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { PaymentRequest } from '../../services/paymentService';
 import { apiService } from '../../services/api';
+import { toast } from 'react-toastify';
+import { PixPaymentModal } from './PixPaymentModal';
 import {
     CreditCard,
     Smartphone,
@@ -62,6 +64,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     const [paymentResponse, setPaymentResponse] = useState<any>(null);
     const [observations, setObservations] = useState<Record<string, string>>({});
+    const [showPixModal, setShowPixModal] = useState(false);
 
     // Atualizar valor quando carrinho mudar
     useEffect(() => {
@@ -140,7 +143,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             const response = await processPayment(request);
             setPaymentResponse(response);
 
-            if (response.success) {
+            // Para PIX, abrir modal específico com timer
+            if (response.success && selectedMethod.type === 'pix') {
+                setShowPixModal(true);
+            } else if (response.success && selectedMethod.type !== 'pix') {
+                // Para outros métodos, finalizar automaticamente
                 setTimeout(() => {
                     onSuccess(response.transactionId!);
                     onClose();
@@ -364,7 +371,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                             ? 'bg-green-50 border border-green-200'
                             : 'bg-red-50 border border-red-200'
                             }`}>
-                            <div className="flex items-center">
+                            <div className="flex items-center mb-3">
                                 {paymentResponse.success ? (
                                     <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                                 ) : (
@@ -375,10 +382,56 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                     {paymentResponse.message}
                                 </span>
                             </div>
+
+
+                            {/* Informações de Cartão */}
+                            {paymentResponse.success && selectedMethod?.type === 'card' && (
+                                <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                                    <div className="text-center">
+                                        <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                                        <p className="font-semibold text-gray-900">Pagamento Processado</p>
+                                        <p className="text-sm text-gray-600">ID da Transação: {paymentResponse.data?.transacaoId}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Informações de Dinheiro */}
+                            {paymentResponse.success && selectedMethod?.type === 'cash' && (
+                                <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                                    <div className="text-center">
+                                        <DollarSign className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                                        <p className="font-semibold text-gray-900">Pagamento em Dinheiro</p>
+                                        <p className="text-sm text-gray-600">Aguarde confirmação na retirada</p>
+                                        <p className="text-xs text-gray-500 mt-1">ID: {paymentResponse.data?.transacaoId}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Modal PIX com Timer */}
+            {showPixModal && paymentResponse && (
+                <PixPaymentModal
+                    isOpen={showPixModal}
+                    onClose={() => setShowPixModal(false)}
+                    onSuccess={(transactionId) => {
+                        setShowPixModal(false);
+                        onSuccess(transactionId);
+                        onClose();
+                    }}
+                    onCancel={() => {
+                        setShowPixModal(false);
+                        setPaymentResponse({ success: false, status: 'cancelled', message: 'Pagamento cancelado' });
+                    }}
+                    qrCode={paymentResponse.qrCode || ''}
+                    pixKey={paymentResponse.pixKey || ''}
+                    valor={paymentData.valor || 0}
+                    transactionId={paymentResponse.transactionId || ''}
+                    expirationTime={paymentResponse.expirationTime || Date.now() + 120000}
+                />
+            )}
         </div>
     );
 };

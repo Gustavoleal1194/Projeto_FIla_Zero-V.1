@@ -25,6 +25,8 @@ namespace FilaZero.Infrastructure.Repositories
             Pedidos = new Repository<Pedido>(_context);
             ItensPedido = new Repository<ItemPedido>(_context);
             Pagamentos = new Repository<Pagamento>(_context);
+            PixCobrancas = new Repository<PixCobranca>(_context);
+            PixWebhooks = new Repository<PixWebhook>(_context);
         }
 
         public IRepository<Usuario> Usuarios { get; }
@@ -34,6 +36,8 @@ namespace FilaZero.Infrastructure.Repositories
         public IRepository<Pedido> Pedidos { get; }
         public IRepository<ItemPedido> ItensPedido { get; }
         public IRepository<Pagamento> Pagamentos { get; }
+        public IRepository<PixCobranca> PixCobrancas { get; }
+        public IRepository<PixWebhook> PixWebhooks { get; }
 
         public async Task<int> SaveChangesAsync()
         {

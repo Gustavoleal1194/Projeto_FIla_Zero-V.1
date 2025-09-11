@@ -196,30 +196,20 @@ export class PaymentService {
             // Log de auditoria
             this.logPaymentAttempt(request);
 
-            // Preparar dados para API
-            const dadosPagamento = this.preparePaymentData(request);
-
-            // Chamar API do backend
-            const response = await apiService.processarPagamento({
-                pedidoId: request.pedidoId,
-                valor: request.valor,
-                metodo: this.mapPaymentMethod(request.metodoPagamento),
-                dadosPagamento: JSON.stringify(dadosPagamento)
-            });
-
-            if (response.success) {
-                return {
-                    success: true,
-                    transactionId: response.data.transacaoId,
-                    status: this.mapPaymentStatus(response.data.status),
-                    message: 'Pagamento processado com sucesso'
-                };
-            } else {
-                return {
-                    success: false,
-                    status: 'rejected',
-                    message: response.message || 'Erro ao processar pagamento'
-                };
+            // Processar baseado no método
+            switch (request.metodoPagamento) {
+                case 'pix':
+                    return await this.processPixPayment(request);
+                case 'card':
+                    return await this.processCardPayment(request);
+                case 'cash':
+                    return await this.processCashPayment(request);
+                default:
+                    return {
+                        success: false,
+                        status: 'rejected',
+                        message: 'Método de pagamento não suportado'
+                    };
             }
         } catch (error) {
             console.error('Erro ao processar pagamento:', error);
@@ -240,21 +230,39 @@ export class PaymentService {
      */
     private static async processPixPayment(request: PaymentRequest): Promise<PaymentResponse> {
         try {
-            // Simulação de PIX (em produção, integrar com gateway real)
-            const qrCode = await this.generatePixQRCode(request);
-            const pixKey = 'pix@fila-zero.com.br';
-            const expirationTime = Date.now() + (15 * 60 * 1000); // 15 minutos
+            // Usar o novo endpoint PIX
+            const response = await apiService.criarCobrancaPix({
+                pedidoId: request.pedidoId,
+                valor: request.valor,
+                descricao: `Pedido ${request.pedidoId}`,
+                expiracaoMinutos: 30
+            });
 
-            return {
-                success: true,
-                transactionId: `PIX_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                status: 'pending',
-                message: 'PIX gerado com sucesso',
-                qrCode,
-                pixKey,
-                expirationTime
-            };
+            console.log('🔍 Resposta PIX completa:', response);
+
+            if (response.success) {
+                const pixResponse: PaymentResponse = {
+                    success: true,
+                    transactionId: response.data.txId,
+                    status: 'pending' as const,
+                    message: 'PIX gerado com sucesso',
+                    qrCode: response.data.qrCodeBase64,
+                    pixKey: response.data.chavePix,
+                    expirationTime: response.data.dataExpiracao ? new Date(response.data.dataExpiracao).getTime() : Date.now() + 30 * 60 * 1000
+                };
+
+                console.log('✅ PIX Response formatado:', pixResponse);
+                return pixResponse;
+            } else {
+                console.log('❌ Erro na resposta PIX:', response);
+                return {
+                    success: false,
+                    status: 'rejected',
+                    message: response.message || 'Erro ao gerar PIX'
+                };
+            }
         } catch (error) {
+            console.error('💥 Erro ao processar PIX:', error);
             throw new Error(`Erro ao processar PIX: ${error}`);
         }
     }
@@ -264,26 +272,34 @@ export class PaymentService {
      */
     private static async processCardPayment(request: PaymentRequest): Promise<PaymentResponse> {
         try {
-            if (!this.stripe) {
-                await this.initializeStripe();
+            // Chamar API do backend para processar cartão
+            const response = await apiService.processarPagamento({
+                pedidoId: request.pedidoId,
+                valor: request.valor,
+                metodo: 'Cartao',
+                dadosPagamento: JSON.stringify({
+                    numeroCartao: request.dadosCartao?.numero || '',
+                    nomeCartao: request.dadosCartao?.nome || '',
+                    cvv: request.dadosCartao?.cvv || '',
+                    dataValidade: request.dadosCartao?.validade || '',
+                    parcelas: 1
+                })
+            });
+
+            if (response.success) {
+                return {
+                    success: true,
+                    transactionId: response.data.transacaoId,
+                    status: this.mapPaymentStatus(response.data.status),
+                    message: response.data.message || 'Pagamento processado com sucesso'
+                };
+            } else {
+                return {
+                    success: false,
+                    status: 'rejected',
+                    message: response.message || 'Erro ao processar pagamento'
+                };
             }
-
-            if (!this.stripe) {
-                throw new Error('Stripe não inicializado');
-            }
-
-            // Simulação de pagamento com cartão (em produção, usar Stripe real)
-            const transactionId = `CARD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            // Simulação de aprovação (90% de sucesso)
-            const isApproved = Math.random() > 0.1;
-
-            return {
-                success: isApproved,
-                transactionId,
-                status: isApproved ? 'approved' : 'rejected',
-                message: isApproved ? 'Pagamento aprovado' : 'Pagamento rejeitado'
-            };
         } catch (error) {
             throw new Error(`Erro ao processar cartão: ${error}`);
         }
@@ -294,14 +310,31 @@ export class PaymentService {
      */
     private static async processCashPayment(request: PaymentRequest): Promise<PaymentResponse> {
         try {
-            const transactionId = `CASH_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            // Chamar API do backend para processar dinheiro
+            const response = await apiService.processarPagamento({
+                pedidoId: request.pedidoId,
+                valor: request.valor,
+                metodo: 'Dinheiro',
+                dadosPagamento: JSON.stringify({
+                    valorRecebido: request.valor,
+                    valorPago: request.valor
+                })
+            });
 
-            return {
-                success: true,
-                transactionId,
-                status: 'pending',
-                message: 'Pagamento em dinheiro - aguardando confirmação na retirada'
-            };
+            if (response.success) {
+                return {
+                    success: true,
+                    transactionId: response.data.transacaoId,
+                    status: this.mapPaymentStatus(response.data.status),
+                    message: response.data.message || 'Pagamento em dinheiro - aguardando confirmação na retirada'
+                };
+            } else {
+                return {
+                    success: false,
+                    status: 'rejected',
+                    message: response.message || 'Erro ao processar pagamento'
+                };
+            }
         } catch (error) {
             throw new Error(`Erro ao processar dinheiro: ${error}`);
         }

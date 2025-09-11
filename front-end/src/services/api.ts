@@ -208,6 +208,32 @@ class ApiService {
         return response.data;
     }
 
+    // PIX
+    async criarCobrancaPix(data: {
+        pedidoId: string;
+        valor: number;
+        descricao: string;
+        expiracaoMinutos?: number;
+    }): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.post('/pix/cobranca', data);
+        return response.data;
+    }
+
+    async consultarCobrancaPix(id: string): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.get(`/pix/cobranca/${id}`);
+        return response.data;
+    }
+
+    async consultarCobrancaPixPorTxId(txId: string): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.get(`/pix/cobranca/txid/${txId}`);
+        return response.data;
+    }
+
+    async listarCobrancasPorPedido(pedidoId: string): Promise<ApiResponse<any[]>> {
+        const response: AxiosResponse<ApiResponse<any[]>> = await this.api.get(`/pix/cobranca/pedido/${pedidoId}`);
+        return response.data;
+    }
+
     async cancelarPagamento(id: string): Promise<ApiResponse<any>> {
         const response: AxiosResponse<ApiResponse<any>> = await this.api.post(`/pagamentos/${id}/cancelar`);
         return response.data;
