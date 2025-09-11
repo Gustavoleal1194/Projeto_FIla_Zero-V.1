@@ -17,18 +17,42 @@ namespace FilaZero.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly IJwtService _jwtService;
 
-        public AuthService(IUnitOfWork unitOfWork, IConfiguration configuration)
+        public AuthService(IUnitOfWork unitOfWork, IConfiguration configuration, IJwtService jwtService)
         {
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+            _jwtService = jwtService;
         }
 
-        public async Task<Usuario> AuthenticateAsync(string email, string senha)
+        public async Task<Usuario?> AuthenticateAsync(string email, string senha)
         {
             var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
             
             if (usuario == null || !VerifyPassword(senha, usuario.SenhaHash, usuario.Salt))
+                return null;
+
+            usuario.UltimoLogin = DateTime.UtcNow;
+            _unitOfWork.Usuarios.Update(usuario);
+            await _unitOfWork.SaveChangesAsync();
+
+            return usuario;
+        }
+
+        public async Task<Usuario?> AuthenticateByCpfAsync(string cpf)
+        {
+            // Limpar CPF (remover pontos, traços e espaços)
+            var cpfLimpo = cpf.Replace(".", "").Replace("-", "").Replace(" ", "");
+            
+            var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Cpf == cpfLimpo && u.IsActive);
+            
+            if (usuario == null)
+                return null;
+
+            // Verificar se o usuário está vinculado a algum evento
+            var pedidos = await _unitOfWork.Pedidos.FindAsync(p => p.ConsumidorId == usuario.Id);
+            if (!pedidos.Any())
                 return null;
 
             usuario.UltimoLogin = DateTime.UtcNow;
@@ -105,39 +129,27 @@ namespace FilaZero.Application.Services
             return true;
         }
 
-        public async Task<string> GenerateJwtTokenAsync(Usuario usuario)
+        public Task<string> GenerateJwtTokenAsync(Usuario usuario)
         {
-            // Esta implementação será substituída pelo JwtService seguro
-            // Mantida para compatibilidade temporária
-            var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{usuario.Id}:{usuario.Email}:{DateTime.UtcNow.Ticks}"));
-            return token;
+            var token = _jwtService.GenerateToken(usuario);
+            return Task.FromResult(token);
         }
 
-        public async Task<bool> ValidateTokenAsync(string token)
+        public Task<bool> ValidateTokenAsync(string token)
+        {
+            var principal = _jwtService.ValidateToken(token);
+            return Task.FromResult(principal != null);
+        }
+
+        public async Task<Usuario?> GetUserFromTokenAsync(string token)
         {
             try
             {
-                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(token));
-                var parts = decoded.Split(':');
-                return parts.Length == 3 && Guid.TryParse(parts[0], out _);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<Usuario> GetUserFromTokenAsync(string token)
-        {
-            try
-            {
-                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(token));
-                var parts = decoded.Split(':');
-                
-                if (parts.Length != 3 || !Guid.TryParse(parts[0], out var userId))
+                var userId = _jwtService.GetUserIdFromToken(token);
+                if (userId == null)
                     return null;
 
-                return await _unitOfWork.Usuarios.GetByIdAsync(userId);
+                return await _unitOfWork.Usuarios.GetByIdAsync(userId.Value);
             }
             catch
             {

@@ -60,6 +60,7 @@ export interface ItemPedido {
     observacoes?: string;
     status: StatusItemPedido;
     produto?: Produto;
+    produtoNome?: string;
 }
 
 export interface Pedido {
@@ -135,14 +136,15 @@ export interface RegisterRequest {
     confirmarSenha: string;
 }
 
-export enum StatusPedido {
-    AguardandoPagamento = 0,
-    Pago = 1,
-    Preparando = 2,
-    Pronto = 3,
-    Entregue = 4,
-    Cancelado = 5
-}
+export type StatusPedido =
+    | 'AguardandoPagamento'
+    | 'Pago'
+    | 'Confirmado'
+    | 'EmPreparo'
+    | 'Preparando'
+    | 'Pronto'
+    | 'Entregue'
+    | 'Cancelado';
 
 export enum StatusItemPedido {
     Aguardando = 0,

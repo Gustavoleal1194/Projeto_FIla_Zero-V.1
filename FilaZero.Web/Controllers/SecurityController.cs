@@ -27,13 +27,13 @@ namespace FilaZero.Web.Controllers
         /// </summary>
         /// <returns>Novo token JWT</returns>
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken()
+        public Task<IActionResult> RefreshToken()
         {
             try
             {
                 var userId = GetCurrentUserId();
                 if (userId == null)
-                    return Unauthorized(new { success = false, message = "Token inválido" });
+                    return Task.FromResult<IActionResult>(Unauthorized(new { success = false, message = "Token inválido" }));
 
                 // Aqui você buscaria o usuário do banco de dados
                 // Por simplicidade, vamos criar um usuário mock
@@ -46,15 +46,15 @@ namespace FilaZero.Web.Controllers
 
                 var newToken = _jwtService.GenerateToken(usuario);
 
-                return Ok(new { 
+                return Task.FromResult<IActionResult>(Ok(new { 
                     success = true, 
                     token = newToken,
                     message = "Token renovado com sucesso"
-                });
+                }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "Erro interno do servidor", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { success = false, message = "Erro interno do servidor", error = ex.Message }));
             }
         }
 

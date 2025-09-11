@@ -29,6 +29,9 @@ import ConsumerCart from './pages/ConsumerCart';
 import ConsumerProfile from './pages/ConsumerProfile';
 import ConsumerOrders from './pages/ConsumerOrders';
 import ClientLogin from './pages/ClientLogin';
+import Dashboard from './pages/Dashboard';
+import Orders from './pages/Orders';
+import KDS from './pages/KDS';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -69,7 +72,7 @@ function App() {
                                                     <Route path="/evento/:eventoId/pedidos" element={<ConsumerOrders />} />
 
                                                     {/* KDS */}
-                                                    <Route path="/kds/:eventoId" element={<div>KDS do Evento (em desenvolvimento)</div>} />
+                                                    <Route path="/kds/:eventoId" element={<KDS />} />
 
                                                     {/* Login do Consumidor */}
                                                     <Route path="/login" element={<ConsumerLogin />} />
@@ -81,9 +84,9 @@ function App() {
                                                     <Route path="/carrinho" element={<Cart />} />
                                                     <Route path="/qr/:eventoId" element={<QRCodeAccess />} />
 
-                                                    {/* Rotas protegidas serão adicionadas aqui */}
-                                                    <Route path="/dashboard" element={<div>Dashboard (em desenvolvimento)</div>} />
-                                                    <Route path="/pedidos" element={<div>Pedidos (em desenvolvimento)</div>} />
+                                                    {/* Rotas protegidas */}
+                                                    <Route path="/dashboard" element={<Dashboard />} />
+                                                    <Route path="/pedidos" element={<Orders />} />
                                                     <Route path="/kds" element={<div>KDS (em desenvolvimento)</div>} />
                                                     <Route path="/eventos" element={<div>Eventos (em desenvolvimento)</div>} />
                                                 </Routes>

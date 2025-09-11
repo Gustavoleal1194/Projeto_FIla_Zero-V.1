@@ -125,9 +125,9 @@ namespace FilaZero.Application.Services
             return true;
         }
 
-        public async Task<decimal> CalcularValorTotalAsync(List<ItemPedido> itens)
+        public Task<decimal> CalcularValorTotalAsync(List<ItemPedido> itens)
         {
-            return itens.Sum(item => item.Quantidade * item.PrecoUnitario);
+            return Task.FromResult(itens.Sum(item => item.Quantidade * item.PrecoUnitario));
         }
 
         public async Task<string> GerarNumeroPedidoAsync(Guid eventoId)

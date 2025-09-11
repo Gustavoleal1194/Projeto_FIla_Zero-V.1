@@ -31,7 +31,7 @@ namespace FilaZero.Web.Middleware
                 ["RequestPath"] = context.Request.Path,
                 ["RequestMethod"] = context.Request.Method,
                 ["UserAgent"] = context.Request.Headers["User-Agent"].ToString(),
-                ["RemoteIpAddress"] = context.Connection.RemoteIpAddress?.ToString()
+                ["RemoteIpAddress"] = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
             });
 
             try

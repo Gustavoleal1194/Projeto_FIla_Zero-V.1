@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 
 const ClientLogin: React.FC = () => {
     const navigate = useNavigate();
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, usuario } = useAuth();
 
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
@@ -26,9 +26,13 @@ const ClientLogin: React.FC = () => {
     // Redirecionar se já estiver logado
     React.useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard');
+            if (usuario?.tipo === 'Gestor') {
+                navigate('/dashboard');
+            } else {
+                navigate('/');
+            }
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, usuario]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,7 +49,11 @@ const ClientLogin: React.FC = () => {
 
             if (success) {
                 toast.success('Login realizado com sucesso!');
-                navigate('/dashboard');
+                if (usuario?.tipo === 'Gestor') {
+                    navigate('/dashboard');
+                } else {
+                    navigate('/');
+                }
             }
         } catch (error) {
             console.error('Erro no login:', error);

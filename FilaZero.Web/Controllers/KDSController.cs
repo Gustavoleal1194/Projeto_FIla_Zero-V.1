@@ -68,14 +68,14 @@ namespace FilaZero.Web.Controllers
                         ValorTotal = p.ValorTotal,
                         Observacoes = p.Observacoes,
                         TempoEstimadoMinutos = p.TempoEstimadoMinutos,
-                        DataCriacao = p.CreatedAt ?? DateTime.MinValue,
-                        ConsumidorNome = p.Consumidor?.Nome,
+                        DataCriacao = p.CreatedAt,
+                        ConsumidorNome = p.Consumidor?.Nome ?? string.Empty,
                         Itens = p.Itens?.Select(i => new ItemPedidoKDSDto
                         {
                             Id = i.Id,
                             Quantidade = i.Quantidade,
-                            ProdutoNome = i.Produto?.Nome,
-                            Observacoes = i.Observacoes,
+                            ProdutoNome = i.Produto?.Nome ?? string.Empty,
+                            Observacoes = i.Observacoes ?? string.Empty,
                             Status = i.Status,
                             TempoPreparoMinutos = i.Produto?.TempoPreparoMinutos ?? 0
                         }).ToList()
@@ -251,12 +251,12 @@ namespace FilaZero.Web.Controllers
 
         private double CalcularTempoMedioPreparo(IEnumerable<Pedido> pedidos)
         {
-            var pedidosEntregues = pedidos.Where(p => p.Status == StatusPedido.Entregue && p.DataPronto.HasValue && p.CreatedAt.HasValue);
+            var pedidosEntregues = pedidos.Where(p => p.Status == StatusPedido.Entregue && p.DataPronto.HasValue);
             
             if (!pedidosEntregues.Any())
                 return 0;
 
-            var tempos = pedidosEntregues.Select(p => (p.DataPronto.Value - p.CreatedAt).TotalMinutes);
+            var tempos = pedidosEntregues.Select(p => (p.DataPronto!.Value - p.CreatedAt).TotalMinutes);
             return tempos.Average();
         }
     }

@@ -363,6 +363,7 @@ const ConsumerCart: React.FC = () => {
                 onClose={() => setShowPaymentModal(false)}
                 onSuccess={handlePaymentSuccess}
                 pedidoId={`PEDIDO_${eventoId}_${Date.now()}`}
+                eventoId={eventoId!}
             />
         </div>
     );

@@ -1,4 +1,5 @@
 import { loadStripe, Stripe, StripeElements, StripePaymentElement } from '@stripe/stripe-js';
+import { apiService } from './api';
 
 export interface PaymentMethod {
     id: string;
@@ -195,16 +196,30 @@ export class PaymentService {
             // Log de auditoria
             this.logPaymentAttempt(request);
 
-            // Processamento por método
-            switch (request.metodoPagamento) {
-                case 'pix':
-                    return await this.processPixPayment(request);
-                case 'card':
-                    return await this.processCardPayment(request);
-                case 'cash':
-                    return await this.processCashPayment(request);
-                default:
-                    throw new Error('Método de pagamento não suportado');
+            // Preparar dados para API
+            const dadosPagamento = this.preparePaymentData(request);
+
+            // Chamar API do backend
+            const response = await apiService.processarPagamento({
+                pedidoId: request.pedidoId,
+                valor: request.valor,
+                metodo: this.mapPaymentMethod(request.metodoPagamento),
+                dadosPagamento: JSON.stringify(dadosPagamento)
+            });
+
+            if (response.success) {
+                return {
+                    success: true,
+                    transactionId: response.data.transacaoId,
+                    status: this.mapPaymentStatus(response.data.status),
+                    message: 'Pagamento processado com sucesso'
+                };
+            } else {
+                return {
+                    success: false,
+                    status: 'rejected',
+                    message: response.message || 'Erro ao processar pagamento'
+                };
             }
         } catch (error) {
             console.error('Erro ao processar pagamento:', error);
@@ -388,6 +403,60 @@ export class PaymentService {
      */
     static getAvailablePaymentMethods(): PaymentMethod[] {
         return this.PAYMENT_METHODS.filter(method => method.enabled);
+    }
+
+    /**
+     * Prepara dados de pagamento para API
+     */
+    private static preparePaymentData(request: PaymentRequest): any {
+        switch (request.metodoPagamento) {
+            case 'pix':
+                return {
+                    chavePix: 'pix@fila-zero.com.br',
+                    nomePagador: request.dadosCliente?.nome || '',
+                    cpfCnpj: request.dadosCliente?.email || ''
+                };
+            case 'card':
+                return {
+                    numeroCartao: request.dadosCartao?.numero || '',
+                    nomeCartao: request.dadosCartao?.nome || '',
+                    cvv: request.dadosCartao?.cvv || '',
+                    dataValidade: request.dadosCartao?.validade || '',
+                    parcelas: 1
+                };
+            case 'cash':
+                return {
+                    valorRecebido: request.valor,
+                    valorPago: request.valor
+                };
+            default:
+                return {};
+        }
+    }
+
+    /**
+     * Mapeia método de pagamento para enum do backend
+     */
+    private static mapPaymentMethod(method: string): string {
+        switch (method) {
+            case 'pix': return 'Pix';
+            case 'card': return 'Cartao';
+            case 'cash': return 'Dinheiro';
+            default: return 'Pix';
+        }
+    }
+
+    /**
+     * Mapeia status de pagamento do backend
+     */
+    private static mapPaymentStatus(status: string): 'pending' | 'approved' | 'rejected' | 'cancelled' {
+        switch (status) {
+            case 'Pendente': return 'pending';
+            case 'Aprovado': return 'approved';
+            case 'Rejeitado': return 'rejected';
+            case 'Cancelado': return 'cancelled';
+            default: return 'pending';
+        }
     }
 
     /**

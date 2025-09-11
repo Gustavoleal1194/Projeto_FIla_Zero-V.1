@@ -22,7 +22,7 @@ namespace FilaZero.Infrastructure.Extensions
         {
             // Configuração do Entity Framework
             services.AddDbContext<FilaZeroDbContext>(options =>
-                options.UseInMemoryDatabase("FilaZeroDb"));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Configuração do Unit of Work
             services.AddScoped<IUnitOfWork, UnitOfWork>();

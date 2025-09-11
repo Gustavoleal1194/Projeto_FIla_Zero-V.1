@@ -45,7 +45,7 @@ namespace FilaZero.Web.Controllers
                     Destaque = p.Destaque,
                     EventoId = p.EventoId,
                     CategoriaId = p.CategoriaId,
-                    CategoriaNome = p.Categoria?.Nome,
+                    CategoriaNome = p.Categoria?.Nome ?? string.Empty,
                     CreatedAt = p.CreatedAt
                 }).OrderBy(p => p.Ordem).ToList();
 
@@ -84,7 +84,7 @@ namespace FilaZero.Web.Controllers
                     Destaque = produto.Destaque,
                     EventoId = produto.EventoId,
                     CategoriaId = produto.CategoriaId,
-                    CategoriaNome = produto.Categoria?.Nome,
+                    CategoriaNome = produto.Categoria?.Nome ?? string.Empty,
                     CreatedAt = produto.CreatedAt
                 };
 

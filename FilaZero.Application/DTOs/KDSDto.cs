@@ -11,14 +11,14 @@ namespace FilaZero.Application.DTOs
     public class PedidoKDSDto
     {
         public Guid Id { get; set; }
-        public string NumeroPedido { get; set; }
+        public string NumeroPedido { get; set; } = string.Empty;
         public StatusPedido Status { get; set; }
         public decimal ValorTotal { get; set; }
-        public string Observacoes { get; set; }
+        public string Observacoes { get; set; } = string.Empty;
         public int TempoEstimadoMinutos { get; set; }
         public DateTime DataCriacao { get; set; }
-        public string ConsumidorNome { get; set; }
-        public List<ItemPedidoKDSDto> Itens { get; set; }
+        public string ConsumidorNome { get; set; } = string.Empty;
+        public List<ItemPedidoKDSDto> Itens { get; set; } = new List<ItemPedidoKDSDto>();
     }
 
     /// <summary>
@@ -28,8 +28,8 @@ namespace FilaZero.Application.DTOs
     {
         public Guid Id { get; set; }
         public int Quantidade { get; set; }
-        public string ProdutoNome { get; set; }
-        public string Observacoes { get; set; }
+        public string ProdutoNome { get; set; } = string.Empty;
+        public string Observacoes { get; set; } = string.Empty;
         public StatusItem Status { get; set; }
         public int TempoPreparoMinutos { get; set; }
     }

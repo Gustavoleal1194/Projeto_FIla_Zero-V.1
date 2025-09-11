@@ -26,9 +26,9 @@ namespace FilaZero.Web.Middleware
                 var rateLimitInfo = _rateLimitingService.GetRateLimitInfo(clientId);
                 
                 context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-                context.Response.Headers.Add("X-RateLimit-Limit", "100");
-                context.Response.Headers.Add("X-RateLimit-Remaining", "0");
-                context.Response.Headers.Add("X-RateLimit-Reset", ((DateTimeOffset)rateLimitInfo.ResetTime).ToUnixTimeSeconds().ToString());
+                context.Response.Headers["X-RateLimit-Limit"] = "100";
+                context.Response.Headers["X-RateLimit-Remaining"] = "0";
+                context.Response.Headers["X-RateLimit-Reset"] = ((DateTimeOffset)rateLimitInfo.ResetTime).ToUnixTimeSeconds().ToString();
                 
                 await context.Response.WriteAsync("Rate limit exceeded. Please try again later.");
                 return;

@@ -12,28 +12,65 @@ using FilaZero.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar para aceitar qualquer hostname
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxConcurrentConnections = 100;
+    options.Limits.MaxConcurrentUpgradedConnections = 100;
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
+    // Desabilitar validação de hostname
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(1);
+});
+
+// Configurar URLs para aceitar qualquer hostname
+builder.WebHost.UseUrls("http://*:5000");
+
+// Desabilitar validação de hostname
+builder.Services.Configure<Microsoft.AspNetCore.HostFiltering.HostFilteringOptions>(options =>
+{
+    options.AllowedHosts = new[] { "*" };
+    options.AllowEmptyHosts = true;
+});
+
+Console.WriteLine("🚀 Iniciando FilaZero Backend...");
+
 // Add services to the container.
 builder.Services.AddControllers();
+Console.WriteLine("✅ Controllers registrados");
 
 // Configurar Entity Framework
 builder.Services.AddInfrastructure(builder.Configuration);
+Console.WriteLine("✅ Infrastructure registrada");
 
 // Configurar serviços de aplicação
 builder.Services.AddApplication();
+Console.WriteLine("✅ Application registrada");
 
 // Configurar SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+Console.WriteLine("✅ SignalR registrado");
 
 // Registrar serviços da Web
 builder.Services.AddScoped<FilaZero.Domain.Interfaces.Services.INotificationService, FilaZero.Web.Services.NotificationService>();
+Console.WriteLine("✅ NotificationService registrado");
 
 // Registrar serviços de segurança
-builder.Services.AddScoped<FilaZero.Web.Security.JwtService>();
+builder.Services.AddScoped<FilaZero.Domain.Interfaces.Services.IJwtService, FilaZero.Web.Security.JwtService>();
 builder.Services.AddSingleton<FilaZero.Web.Security.RateLimitingService>();
+Console.WriteLine("✅ Serviços de segurança registrados");
+
+// Registrar PagamentoService
+builder.Services.AddScoped<FilaZero.Domain.Interfaces.Services.IPagamentoService, FilaZero.Application.Services.PagamentoService>();
+Console.WriteLine("✅ PagamentoService registrado");
 
 // Registrar serviços de cache e logging
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ICacheService, CacheService>();
+Console.WriteLine("✅ Cache e logging registrados");
 
 
 // Configurar logging estruturado
@@ -74,7 +111,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey ?? "FilaZeroSecretKey2024!@#"))
         };
     });
 
@@ -121,24 +158,45 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+Console.WriteLine("🔧 Construindo aplicação...");
 var app = builder.Build();
+Console.WriteLine("✅ Aplicação construída");
 
 // Configure the HTTP request pipeline.
+// Swagger sempre habilitado para facilitar desenvolvimento
+Console.WriteLine("🔧 Configurando Swagger...");
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fila Zero API v1");
+    c.RoutePrefix = "api-docs";
+});
+Console.WriteLine("✅ Swagger configurado");
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    // Executar seed data em desenvolvimento
+    using (var scope = app.Services.CreateScope())
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fila Zero API v1");
-        c.RoutePrefix = "api-docs";
-    });
+        try
+        {
+            var context = scope.ServiceProvider.GetRequiredService<FilaZeroDbContext>();
+            var seedService = new FilaZero.Infrastructure.Data.SeedDataService(context);
+            await seedService.SeedAsync();
+            Console.WriteLine("✅ Seed data executado com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Erro ao executar seed data: {ex.Message}");
+        }
+    }
 }
 else
 {
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Temporariamente desabilitado para debug
 
 // Middlewares de logging e exceções
 app.UseMiddleware<LoggingMiddleware>();
@@ -150,6 +208,9 @@ app.UseMiddleware<FilaZero.Web.Security.SecurityHeadersMiddleware>();
 app.UseMiddleware<FilaZero.Web.Middleware.RateLimitingMiddleware>();
 
 app.UseCors("FilaZeroPolicy");
+
+// Configurar arquivos estáticos para servir imagens
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -165,23 +226,27 @@ app.UseHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 app.MapControllers();
 
 // Mapear SignalR Hub
+Console.WriteLine("🔧 Mapeando SignalR Hub...");
 app.MapHub<NotificationHub>("/notificationHub");
+Console.WriteLine("✅ SignalR Hub mapeado");
 
-// Aplicar migrações automaticamente em desenvolvimento
-if (app.Environment.IsDevelopment())
+Console.WriteLine("🔧 Mapeando controllers...");
+app.MapControllers();
+Console.WriteLine("✅ Controllers mapeados");
+
+Console.WriteLine("🔧 Configurando Health Checks...");
+app.UseHealthChecks("/health");
+app.UseHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<FilaZeroDbContext>();
-        await context.Database.EnsureCreatedAsync();
-        Console.WriteLine("Banco de dados criado com sucesso!");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Erro ao criar banco de dados: {ex.Message}");
-        // Continue mesmo com erro no banco
-    }
-}
+    Predicate = check => check.Tags.Contains("ready")
+});
+Console.WriteLine("✅ Health Checks configurados");
+
+Console.WriteLine("🚀 Iniciando servidor na porta 5000...");
+Console.WriteLine("✅ Backend iniciado com sucesso!");
+Console.WriteLine("📡 API disponível em: http://localhost:5000");
+Console.WriteLine("📡 API disponível em: http://127.0.0.1:5000");
+Console.WriteLine("📚 Swagger disponível em: http://localhost:5000/api-docs");
+Console.WriteLine("❤️ Health Check disponível em: http://localhost:5000/health");
 
 app.Run();

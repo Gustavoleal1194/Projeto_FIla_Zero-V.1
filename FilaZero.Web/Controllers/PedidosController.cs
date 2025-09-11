@@ -97,18 +97,18 @@ namespace FilaZero.Web.Controllers
                     DataCriacao = pedidoCriado.CreatedAt,
                     EventoId = pedidoCriado.EventoId,
                     ConsumidorId = pedidoCriado.ConsumidorId,
-                    ConsumidorNome = pedidoCriado.Consumidor?.Nome,
+                    ConsumidorNome = pedidoCriado.Consumidor?.Nome ?? string.Empty,
                     Itens = pedidoCriado.Itens?.Select(i => new ItemPedidoDto
                     {
                         Id = i.Id,
                         Quantidade = i.Quantidade,
                         PrecoUnitario = i.PrecoUnitario,
                         PrecoTotal = i.PrecoTotal,
-                        Observacoes = i.Observacoes,
+                        Observacoes = i.Observacoes ?? string.Empty,
                         Status = i.Status,
                         ProdutoId = i.ProdutoId,
-                        ProdutoNome = i.Produto?.Nome,
-                        ProdutoImagemUrl = i.Produto?.ImagemUrl
+                        ProdutoNome = i.Produto?.Nome ?? string.Empty,
+                        ProdutoImagemUrl = i.Produto?.ImagemUrl ?? string.Empty
                     }).ToList()
                 };
 
@@ -148,18 +148,18 @@ namespace FilaZero.Web.Controllers
                     DataCriacao = p.CreatedAt,
                     EventoId = p.EventoId,
                     ConsumidorId = p.ConsumidorId,
-                    ConsumidorNome = p.Consumidor?.Nome,
+                    ConsumidorNome = p.Consumidor?.Nome ?? string.Empty,
                     Itens = p.Itens?.Select(i => new ItemPedidoDto
                     {
                         Id = i.Id,
                         Quantidade = i.Quantidade,
                         PrecoUnitario = i.PrecoUnitario,
                         PrecoTotal = i.PrecoTotal,
-                        Observacoes = i.Observacoes,
+                        Observacoes = i.Observacoes ?? string.Empty,
                         Status = i.Status,
                         ProdutoId = i.ProdutoId,
-                        ProdutoNome = i.Produto?.Nome,
-                        ProdutoImagemUrl = i.Produto?.ImagemUrl
+                        ProdutoNome = i.Produto?.Nome ?? string.Empty,
+                        ProdutoImagemUrl = i.Produto?.ImagemUrl ?? string.Empty
                     }).ToList()
                 }).ToList();
 
@@ -203,18 +203,18 @@ namespace FilaZero.Web.Controllers
                     DataCriacao = pedido.CreatedAt,
                     EventoId = pedido.EventoId,
                     ConsumidorId = pedido.ConsumidorId,
-                    ConsumidorNome = pedido.Consumidor?.Nome,
+                    ConsumidorNome = pedido.Consumidor?.Nome ?? string.Empty,
                     Itens = pedido.Itens?.Select(i => new ItemPedidoDto
                     {
                         Id = i.Id,
                         Quantidade = i.Quantidade,
                         PrecoUnitario = i.PrecoUnitario,
                         PrecoTotal = i.PrecoTotal,
-                        Observacoes = i.Observacoes,
+                        Observacoes = i.Observacoes ?? string.Empty,
                         Status = i.Status,
                         ProdutoId = i.ProdutoId,
-                        ProdutoNome = i.Produto?.Nome,
-                        ProdutoImagemUrl = i.Produto?.ImagemUrl
+                        ProdutoNome = i.Produto?.Nome ?? string.Empty,
+                        ProdutoImagemUrl = i.Produto?.ImagemUrl ?? string.Empty
                     }).ToList()
                 };
 

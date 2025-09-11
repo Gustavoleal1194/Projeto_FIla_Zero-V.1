@@ -11,7 +11,7 @@ namespace FilaZero.Application.Services
     public interface ICacheService
     {
         Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
-        Task<T> GetAsync<T>(string key);
+        Task<T?> GetAsync<T>(string key);
         Task SetAsync<T>(string key, T value, TimeSpan? expiration = null);
         Task RemoveAsync(string key);
         Task RemoveByPatternAsync(string pattern);
@@ -30,7 +30,7 @@ namespace FilaZero.Application.Services
 
         public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null)
         {
-            if (_cache.TryGetValue(key, out T cachedValue))
+            if (_cache.TryGetValue(key, out T? cachedValue) && cachedValue != null)
             {
                 _logger.LogDebug("Cache hit for key: {Key}", key);
                 return cachedValue;
@@ -50,19 +50,19 @@ namespace FilaZero.Application.Services
             return value;
         }
 
-        public async Task<T> GetAsync<T>(string key)
+        public Task<T?> GetAsync<T>(string key)
         {
-            if (_cache.TryGetValue(key, out T value))
+            if (_cache.TryGetValue(key, out T? value) && value != null)
             {
                 _logger.LogDebug("Cache hit for key: {Key}", key);
-                return value;
+                return Task.FromResult<T?>(value);
             }
 
             _logger.LogDebug("Cache miss for key: {Key}", key);
-            return default(T);
+            return Task.FromResult<T?>(default(T));
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null)
         {
             var cacheOptions = new MemoryCacheEntryOptions
             {
@@ -73,18 +73,21 @@ namespace FilaZero.Application.Services
 
             _cache.Set(key, value, cacheOptions);
             _logger.LogDebug("Value cached for key: {Key}", key);
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             _cache.Remove(key);
             _logger.LogDebug("Cache removed for key: {Key}", key);
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveByPatternAsync(string pattern)
+        public Task RemoveByPatternAsync(string pattern)
         {
             // Implementação simplificada - em produção usar Redis com pattern matching
             _logger.LogWarning("RemoveByPatternAsync not implemented for MemoryCache. Pattern: {Pattern}", pattern);
+            return Task.CompletedTask;
         }
     }
 }

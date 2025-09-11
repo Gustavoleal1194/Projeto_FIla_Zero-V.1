@@ -9,6 +9,7 @@ interface AuthContextType {
     token: string | null;
     eventoVinculado: Evento | null;
     login: (credentials: LoginRequest) => Promise<boolean>;
+    loginCpf: (cpf: string) => Promise<boolean>;
     register: (data: RegisterRequest) => Promise<boolean>;
     logout: () => void;
     loading: boolean;
@@ -65,8 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             setLoading(true);
 
-            // Usar serviço de demonstração para login
-            const response = await demoService.login(credentials);
+            // Usar API real para login
+            const response = await apiService.login(credentials);
 
             setToken(response.token);
             setUsuario(response.usuario);
@@ -84,7 +85,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             return true;
         } catch (error: any) {
-            const message = error.message || 'Erro ao fazer login';
+            const message = error.response?.data?.message || error.message || 'Erro ao fazer login';
+            toast.error(message);
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loginCpf = async (cpf: string): Promise<boolean> => {
+        try {
+            setLoading(true);
+
+            // Usar API real para login com CPF
+            const response = await apiService.loginCpf(cpf);
+
+            setToken(response.token);
+            setUsuario(response.usuario);
+            setEventoVinculado(response.usuario.eventoVinculado || null);
+
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('usuario', JSON.stringify(response.usuario));
+            if (response.usuario.eventoVinculado) {
+                localStorage.setItem('eventoVinculado', JSON.stringify(response.usuario.eventoVinculado));
+            }
+
+            toast.success('Login realizado com sucesso!');
+
+            return true;
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Erro ao fazer login';
             toast.error(message);
             return false;
         } finally {
@@ -130,6 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         token,
         eventoVinculado,
         login,
+        loginCpf,
         register,
         logout,
         loading,

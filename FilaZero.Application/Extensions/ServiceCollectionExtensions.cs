@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using FilaZero.Domain.Interfaces.Services;
 using FilaZero.Application.Services;
+using FilaZero.Application.Mappings;
 
 namespace FilaZero.Application.Extensions
 {
@@ -16,6 +17,9 @@ namespace FilaZero.Application.Extensions
         /// <returns>Coleção de serviços configurada</returns>
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+            // Configurar AutoMapper
+            services.AddAutoMapper(typeof(MappingProfile));
+
             // Registrar serviços
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IPedidoService, PedidoService>();

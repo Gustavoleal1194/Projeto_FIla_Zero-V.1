@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { demoService } from '../services/demoService';
+import { apiService } from '../services/api';
 import {
     ShoppingCart,
     Menu,
@@ -35,7 +35,7 @@ const ConsumerApp: React.FC = () => {
     // Buscar produtos do evento
     const { data: produtos, isLoading: produtosLoading } = useQuery(
         ['produtos', eventoId],
-        () => demoService.getProdutos(eventoId!),
+        () => apiService.getProdutosByEvento(eventoId!),
         {
             enabled: !!eventoId
         }
@@ -44,7 +44,7 @@ const ConsumerApp: React.FC = () => {
     // Buscar categorias do evento
     const { data: categorias, isLoading: categoriasLoading } = useQuery(
         ['categorias', eventoId],
-        () => demoService.getCategorias(eventoId!),
+        () => apiService.getCategoriasByEvento(eventoId!),
         {
             enabled: !!eventoId
         }

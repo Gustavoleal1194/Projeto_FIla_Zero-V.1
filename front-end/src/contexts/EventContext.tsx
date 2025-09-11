@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Evento } from '../types';
-import { demoService } from '../services/demoService';
+import { apiService } from '../services/api';
 
 interface EventContextType {
     eventoAtual: Evento | null;
@@ -40,8 +40,8 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
             setLoading(true);
             setError(null);
 
-            // Buscar dados do evento usando serviço de demonstração
-            const evento = await demoService.getEventoById(eventoId);
+            // Buscar dados do evento usando API real
+            const evento = await apiService.getEventoById(eventoId);
             setEventoAtual(evento);
 
             // Aplicar tema dinâmico

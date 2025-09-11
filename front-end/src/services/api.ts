@@ -57,6 +57,11 @@ class ApiService {
         return response.data.data!;
     }
 
+    async loginCpf(cpf: string): Promise<LoginResponse> {
+        const response: AxiosResponse<ApiResponse<LoginResponse>> = await this.api.post('/auth/login-cpf', { cpf });
+        return response.data.data!;
+    }
+
     async register(data: RegisterRequest): Promise<LoginResponse> {
         const response: AxiosResponse<ApiResponse<LoginResponse>> = await this.api.post('/auth/register', data);
         return response.data.data!;
@@ -69,7 +74,7 @@ class ApiService {
     }
 
     async getUsuarioAtual(): Promise<Usuario> {
-        const response: AxiosResponse<ApiResponse<Usuario>> = await this.api.get('/auth/me');
+        const response: AxiosResponse<ApiResponse<Usuario>> = await this.api.get('/auth/profile');
         return response.data.data!;
     }
 
@@ -89,9 +94,14 @@ class ApiService {
         return response.data.data!;
     }
 
+    async getMeusEventos(): Promise<Evento[]> {
+        const response: AxiosResponse<ApiResponse<Evento[]>> = await this.api.get('/eventos/meus-eventos');
+        return response.data.data!;
+    }
+
     // Produtos
     async getProdutos(eventoId: string): Promise<Produto[]> {
-        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos?eventoId=${eventoId}`);
+        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos/evento/${eventoId}`);
         return response.data.data!;
     }
 
@@ -101,10 +111,6 @@ class ApiService {
     }
 
     // Pedidos
-    async criarPedido(pedido: CriarPedidoRequest): Promise<Pedido> {
-        const response: AxiosResponse<ApiResponse<Pedido>> = await this.api.post('/pedidos', pedido);
-        return response.data.data!;
-    }
 
     async getPedidos(eventoId?: string): Promise<Pedido[]> {
         const url = eventoId ? `/pedidos?eventoId=${eventoId}` : '/pedidos';
@@ -124,17 +130,22 @@ class ApiService {
 
     // KDS (Kitchen Display System)
     async getPedidosKDS(eventoId: string): Promise<Pedido[]> {
-        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/pedidos?eventoId=${eventoId}`);
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/evento/${eventoId}`);
         return response.data.data!;
     }
 
     async getPedidosParaKDS(eventoId: string): Promise<Pedido[]> {
-        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/pedidos?eventoId=${eventoId}`);
+        const response: AxiosResponse<ApiResponse<Pedido[]>> = await this.api.get(`/kds/evento/${eventoId}`);
+        return response.data.data!;
+    }
+
+    async getEstatisticasKDS(eventoId: string): Promise<any> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.get(`/kds/evento/${eventoId}/estatisticas`);
         return response.data.data!;
     }
 
     async getProdutosByEvento(eventoId: string): Promise<Produto[]> {
-        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos?eventoId=${eventoId}`);
+        const response: AxiosResponse<ApiResponse<Produto[]>> = await this.api.get(`/produtos/evento/${eventoId}`);
         return response.data.data!;
     }
 
@@ -143,9 +154,62 @@ class ApiService {
         return response.data.data!;
     }
 
+    async criarPedido(data: {
+        eventoId: string;
+        itens: Array<{
+            produtoId: string;
+            quantidade: number;
+            precoUnitario: number;
+            precoTotal: number;
+            observacoes: string;
+        }>;
+        observacoes: string;
+        valorTotal: number;
+    }): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.post('/pedidos', data);
+        return response.data;
+    }
+
+    // Categorias
+    async getCategoriasByEvento(eventoId: string): Promise<any[]> {
+        const response: AxiosResponse<ApiResponse<any[]>> = await this.api.get(`/categorias/evento/${eventoId}`);
+        return response.data.data!;
+    }
+
     // Health Check
     async healthCheck(): Promise<{ status: string; timestamp: string }> {
         const response: AxiosResponse<{ status: string; timestamp: string }> = await this.api.get('/health');
+        return response.data;
+    }
+
+    // Pagamentos
+    async processarPagamento(data: {
+        pedidoId: string;
+        valor: number;
+        metodo: string;
+        dadosPagamento: string;
+    }): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.post('/pagamentos/processar', data);
+        return response.data;
+    }
+
+    async getPagamento(id: string): Promise<any> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.get(`/pagamentos/${id}`);
+        return response.data.data!;
+    }
+
+    async getPagamentosByUsuario(): Promise<any[]> {
+        const response: AxiosResponse<ApiResponse<any[]>> = await this.api.get('/pagamentos/usuario');
+        return response.data.data!;
+    }
+
+    async confirmarPagamento(id: string): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.post(`/pagamentos/${id}/confirmar`);
+        return response.data;
+    }
+
+    async cancelarPagamento(id: string): Promise<ApiResponse<any>> {
+        const response: AxiosResponse<ApiResponse<any>> = await this.api.post(`/pagamentos/${id}/cancelar`);
         return response.data;
     }
 }

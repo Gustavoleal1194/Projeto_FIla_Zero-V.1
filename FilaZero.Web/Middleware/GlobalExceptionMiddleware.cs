@@ -79,8 +79,8 @@ namespace FilaZero.Web.Middleware
     /// </summary>
     public class ErrorResponse
     {
-        public string Message { get; set; }
-        public string TraceId { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string TraceId { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
     }
 }

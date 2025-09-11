@@ -51,6 +51,53 @@ namespace FilaZero.Web.Controllers
                             Nome = usuario.Nome,
                             Email = usuario.Email,
                             Telefone = usuario.Telefone,
+                            Cpf = usuario.Cpf,
+                            Tipo = usuario.Tipo,
+                            EmailConfirmado = usuario.EmailConfirmado,
+                            UltimoLogin = usuario.UltimoLogin,
+                            CreatedAt = usuario.CreatedAt
+                        },
+                        token
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Erro interno do servidor", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Realiza login do usuário usando CPF
+        /// </summary>
+        /// <param name="loginCpfDto">Dados de login com CPF</param>
+        /// <returns>Token de autenticação</returns>
+        [HttpPost("login-cpf")]
+        public async Task<IActionResult> LoginCpf([FromBody] LoginCpfDto loginCpfDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { success = false, message = "Dados inválidos", errors = ModelState });
+
+            try
+            {
+                var usuario = await _authService.AuthenticateByCpfAsync(loginCpfDto.Cpf);
+                if (usuario == null)
+                    return Unauthorized(new { success = false, message = "CPF não encontrado ou usuário não vinculado a nenhum evento" });
+
+                var token = await _authService.GenerateJwtTokenAsync(usuario);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        usuario = new UsuarioDto
+                        {
+                            Id = usuario.Id,
+                            Nome = usuario.Nome,
+                            Email = usuario.Email,
+                            Telefone = usuario.Telefone,
+                            Cpf = usuario.Cpf,
                             Tipo = usuario.Tipo,
                             EmailConfirmado = usuario.EmailConfirmado,
                             UltimoLogin = usuario.UltimoLogin,
@@ -197,16 +244,16 @@ namespace FilaZero.Web.Controllers
         /// <returns>Resultado da operação</returns>
         [HttpPost("logout")]
         [Authorize]
-        public async Task<IActionResult> Logout()
+        public Task<IActionResult> Logout()
         {
             try
             {
                 // Em uma implementação real, você invalidaria o token aqui
-                return Ok(new { success = true, message = "Logout realizado com sucesso" });
+                return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Logout realizado com sucesso" }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "Erro interno do servidor", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { success = false, message = "Erro interno do servidor", error = ex.Message }));
             }
         }
 

@@ -9,9 +9,9 @@ namespace FilaZero.Application.DTOs
     public class CategoriaDto
     {
         public Guid Id { get; set; }
-        public string Nome { get; set; }
-        public string Descricao { get; set; }
-        public string Cor { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Descricao { get; set; } = string.Empty;
+        public string Cor { get; set; } = string.Empty;
         public int Ordem { get; set; }
         public bool Ativo { get; set; }
         public Guid EventoId { get; set; }
@@ -25,10 +25,10 @@ namespace FilaZero.Application.DTOs
     {
         [Required(ErrorMessage = "Nome é obrigatório")]
         [StringLength(100, ErrorMessage = "Nome deve ter no máximo 100 caracteres")]
-        public string Nome { get; set; }
+        public string Nome { get; set; } = string.Empty;
 
         [StringLength(500, ErrorMessage = "Descrição deve ter no máximo 500 caracteres")]
-        public string Descricao { get; set; }
+        public string Descricao { get; set; } = string.Empty;
 
         [StringLength(7, ErrorMessage = "Cor deve ter 7 caracteres")]
         public string Cor { get; set; } = "#007bff";
@@ -49,13 +49,13 @@ namespace FilaZero.Application.DTOs
     {
         [Required(ErrorMessage = "Nome é obrigatório")]
         [StringLength(100, ErrorMessage = "Nome deve ter no máximo 100 caracteres")]
-        public string Nome { get; set; }
+        public string Nome { get; set; } = string.Empty;
 
         [StringLength(500, ErrorMessage = "Descrição deve ter no máximo 500 caracteres")]
-        public string Descricao { get; set; }
+        public string Descricao { get; set; } = string.Empty;
 
         [StringLength(7, ErrorMessage = "Cor deve ter 7 caracteres")]
-        public string Cor { get; set; }
+        public string Cor { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Ordem é obrigatória")]
         public int Ordem { get; set; }

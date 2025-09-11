@@ -3,6 +3,7 @@ import { usePayment } from '../../contexts/PaymentContext';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { PaymentRequest } from '../../services/paymentService';
+import { apiService } from '../../services/api';
 import {
     CreditCard,
     Smartphone,
@@ -18,13 +19,15 @@ interface PaymentModalProps {
     onClose: () => void;
     onSuccess: (transactionId: string) => void;
     pedidoId: string;
+    eventoId: string;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
     isOpen,
     onClose,
     onSuccess,
-    pedidoId
+    pedidoId,
+    eventoId
 }) => {
     const {
         isProcessing,
@@ -58,6 +61,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     });
 
     const [paymentResponse, setPaymentResponse] = useState<any>(null);
+    const [observations, setObservations] = useState<Record<string, string>>({});
 
     // Atualizar valor quando carrinho mudar
     useEffect(() => {
@@ -96,20 +100,43 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             return;
         }
 
-        const request: PaymentRequest = {
-            pedidoId,
-            valor: getTotalPrice(),
-            metodoPagamento: selectedMethod.type,
-            dadosCliente: paymentData.dadosCliente,
-            dadosCartao: selectedMethod.type === 'card' ? cardData : undefined
-        };
-
-        // Validar dados
-        if (!validatePaymentData(request)) {
-            return;
-        }
-
         try {
+            // Primeiro, criar o pedido no backend
+            const pedidoData = {
+                eventoId: eventoId,
+                itens: items.map(item => ({
+                    produtoId: item.produto.id,
+                    quantidade: item.quantidade,
+                    precoUnitario: item.produto.preco,
+                    precoTotal: item.produto.preco * item.quantidade,
+                    observacoes: observations[item.produto.id] || ''
+                })),
+                observacoes: '',
+                valorTotal: getTotalPrice()
+            };
+
+            const pedidoResponse = await apiService.criarPedido(pedidoData);
+
+            if (!pedidoResponse.success) {
+                throw new Error(pedidoResponse.message || 'Erro ao criar pedido');
+            }
+
+            const pedidoIdReal = pedidoResponse.data?.id;
+
+            // Agora processar o pagamento
+            const request: PaymentRequest = {
+                pedidoId: pedidoIdReal,
+                valor: getTotalPrice(),
+                metodoPagamento: selectedMethod.type,
+                dadosCliente: paymentData.dadosCliente,
+                dadosCartao: selectedMethod.type === 'card' ? cardData : undefined
+            };
+
+            // Validar dados
+            if (!validatePaymentData(request)) {
+                return;
+            }
+
             const response = await processPayment(request);
             setPaymentResponse(response);
 
@@ -121,6 +148,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             }
         } catch (error) {
             console.error('Erro ao processar pagamento:', error);
+            setPaymentResponse({
+                success: false,
+                status: 'rejected',
+                message: error instanceof Error ? error.message : 'Erro ao processar pagamento'
+            });
         }
     };
 
@@ -167,8 +199,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                                     <label
                                         key={method.id}
                                         className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${selectedMethod?.id === method.id
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
                                         <input
@@ -329,8 +361,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     {/* Resposta do Pagamento */}
                     {paymentResponse && (
                         <div className={`mt-4 p-4 rounded-lg ${paymentResponse.success
-                                ? 'bg-green-50 border border-green-200'
-                                : 'bg-red-50 border border-red-200'
+                            ? 'bg-green-50 border border-green-200'
+                            : 'bg-red-50 border border-red-200'
                             }`}>
                             <div className="flex items-center">
                                 {paymentResponse.success ? (

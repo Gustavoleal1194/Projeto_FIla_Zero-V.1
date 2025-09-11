@@ -20,7 +20,7 @@ namespace FilaZero.Tests.Domain.Entities
                     ProdutoId = Guid.NewGuid(),
                     Quantidade = 2,
                     PrecoUnitario = 10.50m,
-                    Status = StatusItemPedido.AguardandoPreparo
+                    Status = StatusItem.Aguardando
                 }
             };
 
@@ -55,13 +55,13 @@ namespace FilaZero.Tests.Domain.Entities
                     {
                         Quantidade = 2,
                         PrecoUnitario = 10.00m,
-                        Status = StatusItemPedido.AguardandoPreparo
+                        Status = StatusItem.Aguardando
                     },
                     new ItemPedido
                     {
                         Quantidade = 1,
                         PrecoUnitario = 15.00m,
-                        Status = StatusItemPedido.AguardandoPreparo
+                        Status = StatusItem.Aguardando
                     }
                 }
             };

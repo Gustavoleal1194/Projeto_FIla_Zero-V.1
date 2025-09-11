@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayment } from '../contexts/PaymentContext';
+import { useEvent } from '../contexts/EventContext';
+import { getBackendImageUrl } from '../utils/imageUtils';
 import { PaymentModal } from '../components/Payment/PaymentModal';
 import {
     Plus,
@@ -28,6 +30,7 @@ const Cart: React.FC = () => {
     } = useCart();
     const { isAuthenticated } = useAuth();
     const { initializePayment } = usePayment();
+    const { eventoAtual } = useEvent();
     const navigate = useNavigate();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -121,7 +124,7 @@ const Cart: React.FC = () => {
                                 <div key={item.produto.id} className="bg-white rounded-lg shadow-md p-6">
                                     <div className="flex items-start space-x-4">
                                         <img
-                                            src={item.produto.imagemUrl || '/api/placeholder/100/100'}
+                                            src={getBackendImageUrl(item.produto.imagemUrl)}
                                             alt={item.produto.nome}
                                             className="w-20 h-20 object-cover rounded-lg"
                                         />
@@ -292,6 +295,7 @@ const Cart: React.FC = () => {
                 onClose={() => setShowPaymentModal(false)}
                 onSuccess={handlePaymentSuccess}
                 pedidoId={`PEDIDO_${Date.now()}`}
+                eventoId={eventoAtual?.id || ''}
             />
         </div>
     );

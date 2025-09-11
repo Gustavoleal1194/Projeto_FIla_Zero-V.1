@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
+import { getBackendImageUrl } from '../utils/imageUtils';
 import { useTheme } from '../contexts/ThemeContext';
+import { apiService } from '../services/api';
+import { Pedido } from '../types';
 import {
     ArrowLeft,
     User,
@@ -25,56 +28,16 @@ const ConsumerProfile: React.FC = () => {
     const { eventoAtual } = useEvent();
     const { tema } = useTheme();
 
-    const [pedidos, setPedidos] = useState<any[]>([]);
+    const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Simular carregamento de pedidos do usuário
+    // Carregar pedidos reais do usuário
     useEffect(() => {
         const loadPedidos = async () => {
             setIsLoading(true);
             try {
-                // Simular delay de API
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                // Simular pedidos fictícios
-                const pedidosFicticios = [
-                    {
-                        id: '1',
-                        numero: 'PED-001',
-                        data: '2024-12-15T19:30:00Z',
-                        status: 'Entregue',
-                        total: 45.50,
-                        itens: [
-                            { nome: 'Hambúrguer Clássico', quantidade: 2, preco: 15.00 },
-                            { nome: 'Cerveja Artesanal', quantidade: 1, preco: 12.00 },
-                            { nome: 'Batata Frita', quantidade: 1, preco: 8.50 }
-                        ]
-                    },
-                    {
-                        id: '2',
-                        numero: 'PED-002',
-                        data: '2024-12-15T20:15:00Z',
-                        status: 'Em Preparo',
-                        total: 32.00,
-                        itens: [
-                            { nome: 'Hot Dog Completo', quantidade: 2, preco: 12.00 },
-                            { nome: 'Refrigerante', quantidade: 2, preco: 4.00 }
-                        ]
-                    },
-                    {
-                        id: '3',
-                        numero: 'PED-003',
-                        data: '2024-12-15T21:00:00Z',
-                        status: 'Aguardando',
-                        total: 28.50,
-                        itens: [
-                            { nome: 'Pizza Margherita', quantidade: 1, preco: 25.00 },
-                            { nome: 'Suco Natural', quantidade: 1, preco: 3.50 }
-                        ]
-                    }
-                ];
-
-                setPedidos(pedidosFicticios);
+                const pedidosData = await apiService.getPedidosByUsuario();
+                setPedidos(pedidosData);
             } catch (error) {
                 console.error('Erro ao carregar pedidos:', error);
             } finally {
@@ -89,10 +52,15 @@ const ConsumerProfile: React.FC = () => {
         switch (status) {
             case 'Entregue':
                 return <CheckCircle className="w-5 h-5 text-green-500" />;
-            case 'Em Preparo':
+            case 'EmPreparo':
+            case 'Preparando':
+                return <Clock className="w-5 h-5 text-orange-500" />;
+            case 'AguardandoPagamento':
                 return <Clock className="w-5 h-5 text-yellow-500" />;
-            case 'Aguardando':
-                return <Clock className="w-5 h-5 text-blue-500" />;
+            case 'Confirmado':
+                return <CheckCircle className="w-5 h-5 text-blue-500" />;
+            case 'Pronto':
+                return <CheckCircle className="w-5 h-5 text-green-500" />;
             case 'Cancelado':
                 return <XCircle className="w-5 h-5 text-red-500" />;
             default:
@@ -104,10 +72,15 @@ const ConsumerProfile: React.FC = () => {
         switch (status) {
             case 'Entregue':
                 return 'text-green-600 bg-green-100';
-            case 'Em Preparo':
+            case 'EmPreparo':
+            case 'Preparando':
+                return 'text-orange-600 bg-orange-100';
+            case 'AguardandoPagamento':
                 return 'text-yellow-600 bg-yellow-100';
-            case 'Aguardando':
+            case 'Confirmado':
                 return 'text-blue-600 bg-blue-100';
+            case 'Pronto':
+                return 'text-green-600 bg-green-100';
             case 'Cancelado':
                 return 'text-red-600 bg-red-100';
             default:
@@ -213,7 +186,7 @@ const ConsumerProfile: React.FC = () => {
                         <div className="bg-white rounded-lg shadow-sm p-6 text-center">
                             <CreditCard className="w-8 h-8 text-purple-600 mx-auto mb-2" />
                             <div className="text-2xl font-bold text-gray-900">
-                                R$ {pedidos.reduce((total, pedido) => total + pedido.total, 0).toFixed(2)}
+                                R$ {pedidos.reduce((total, pedido) => total + pedido.valorTotal, 0).toFixed(2)}
                             </div>
                             <div className="text-sm text-gray-600">Total Gasto</div>
                         </div>
@@ -247,13 +220,13 @@ const ConsumerProfile: React.FC = () => {
                                                 <div className="flex items-center space-x-3">
                                                     {getStatusIcon(pedido.status)}
                                                     <div>
-                                                        <h4 className="font-medium text-gray-900">{pedido.numero}</h4>
-                                                        <p className="text-sm text-gray-600">{formatDate(pedido.data)}</p>
+                                                        <h4 className="font-medium text-gray-900">{pedido.numeroPedido}</h4>
+                                                        <p className="text-sm text-gray-600">{formatDate(pedido.dataCriacao)}</p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="font-semibold text-gray-900">
-                                                        R$ {pedido.total.toFixed(2)}
+                                                        R$ {pedido.valorTotal.toFixed(2)}
                                                     </div>
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
                                                         {pedido.status}
@@ -266,8 +239,8 @@ const ConsumerProfile: React.FC = () => {
                                                 <div className="space-y-1">
                                                     {pedido.itens.map((item: any, index: number) => (
                                                         <div key={index} className="flex justify-between text-sm text-gray-600">
-                                                            <span>{item.quantidade}x {item.nome}</span>
-                                                            <span>R$ {(item.preco * item.quantidade).toFixed(2)}</span>
+                                                            <span>{item.quantidade}x {item.produtoNome || item.produto?.nome || 'Produto'}</span>
+                                                            <span>R$ {(item.precoUnitario * item.quantidade).toFixed(2)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -301,7 +274,7 @@ const ConsumerProfile: React.FC = () => {
                             <div className="flex items-center space-x-4">
                                 {eventoAtual.logoUrl && (
                                     <img
-                                        src={eventoAtual.logoUrl}
+                                        src={getBackendImageUrl(eventoAtual.logoUrl)}
                                         alt={eventoAtual.nome}
                                         className="w-12 h-12 rounded-lg object-cover"
                                     />

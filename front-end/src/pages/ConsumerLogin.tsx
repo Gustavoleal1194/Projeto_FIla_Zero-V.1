@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
 import { demoService } from '../services/demoService';
+import { apiService } from '../services/api';
 import { QrCode, User, CreditCard, ArrowRight, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ConsumerLogin: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
     const navigate = useNavigate();
-    const { login, isAuthenticated, eventoVinculado } = useAuth();
+    const { login, loginCpf, isAuthenticated, eventoVinculado } = useAuth();
     const { carregarEvento, eventoAtual } = useEvent();
 
     const [loginMethod, setLoginMethod] = useState<'cpf' | 'codigo'>('cpf');
@@ -23,7 +24,7 @@ const ConsumerLogin: React.FC = () => {
         const loadEvento = async () => {
             if (eventoId) {
                 try {
-                    const eventoData = await demoService.getEventoById(eventoId);
+                    const eventoData = await apiService.getEventoById(eventoId);
                     setEvento(eventoData);
                 } catch (error) {
                     console.error('Erro ao carregar evento:', error);
@@ -31,13 +32,17 @@ const ConsumerLogin: React.FC = () => {
                     navigate('/');
                 }
             } else {
-                // Se não tem eventoId, carregar evento padrão (Festival de Rock)
+                // Se não tem eventoId, carregar o primeiro evento disponível
                 try {
-                    const eventoData = await demoService.getEventoById('1');
-                    setEvento(eventoData);
+                    const eventos = await apiService.getEventos();
+                    if (eventos && eventos.length > 0) {
+                        setEvento(eventos[0]);
+                    } else {
+                        toast.error('Nenhum evento encontrado');
+                    }
                 } catch (error) {
-                    console.error('Erro ao carregar evento padrão:', error);
-                    toast.error('Erro ao carregar evento');
+                    console.error('Erro ao carregar eventos:', error);
+                    toast.error('Erro ao carregar eventos');
                 }
             }
         };
@@ -71,8 +76,6 @@ const ConsumerLogin: React.FC = () => {
         setIsLoading(true);
 
         try {
-            let loginData;
-
             if (loginMethod === 'cpf') {
                 if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
                     toast.error('CPF inválido');
@@ -80,20 +83,23 @@ const ConsumerLogin: React.FC = () => {
                     return;
                 }
 
-                // Simular busca por CPF no evento
+                // Usar login real com CPF
                 const cpfLimpo = cpf.replace(/\D/g, '');
+                const loginSuccess = await loginCpf(cpfLimpo);
 
-                // CPF específico do Gustavo
-                if (cpfLimpo === '36753571809') {
-                    loginData = await demoService.login({
-                        email: 'gustavo@cliente.com',
-                        senha: '123456'
-                    });
-                } else {
-                    loginData = await demoService.login({
-                        email: `consumidor_${cpfLimpo}@evento.com`,
-                        senha: 'senha123'
-                    });
+                if (loginSuccess) {
+                    // Redirecionar para o evento vinculado ao usuário
+                    if (eventoVinculado) {
+                        navigate(`/evento/${eventoVinculado.id}/menu`, { replace: true });
+                    } else {
+                        // Se não tem eventoId na URL, usar evento atual
+                        const targetEventoId = eventoId || evento?.id;
+                        if (targetEventoId) {
+                            navigate(`/evento/${targetEventoId}/menu`, { replace: true });
+                        } else {
+                            toast.error('Evento não encontrado');
+                        }
+                    }
                 }
             } else {
                 if (!codigo.trim()) {
@@ -102,27 +108,24 @@ const ConsumerLogin: React.FC = () => {
                     return;
                 }
 
-                // Simular busca por código da pulseira
-                loginData = await demoService.login({
+                // Para código da pulseira, ainda usar demo por enquanto
+                const loginData = await demoService.login({
                     email: `consumidor_${codigo}@evento.com`,
                     senha: 'senha123'
                 });
-            }
 
-            // Fazer login através do AuthContext
-            const loginSuccess = await login({
-                email: loginData.usuario.email,
-                senha: '123456'
-            });
+                const loginSuccess = await login({
+                    email: loginData.usuario.email,
+                    senha: '123456'
+                });
 
-            if (loginSuccess) {
-                // Redirecionar para o evento vinculado ao usuário
-                if (loginData.usuario.eventoVinculado) {
-                    navigate(`/evento/${loginData.usuario.eventoVinculado.id}/menu`, { replace: true });
-                } else {
-                    // Se não tem eventoId na URL, usar evento padrão
-                    const targetEventoId = eventoId || '1';
-                    navigate(`/evento/${targetEventoId}/menu`, { replace: true });
+                if (loginSuccess) {
+                    if (loginData.usuario.eventoVinculado) {
+                        navigate(`/evento/${loginData.usuario.eventoVinculado.id}/menu`, { replace: true });
+                    } else {
+                        const targetEventoId = eventoId || '1';
+                        navigate(`/evento/${targetEventoId}/menu`, { replace: true });
+                    }
                 }
             }
         } catch (error) {
