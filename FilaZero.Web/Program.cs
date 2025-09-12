@@ -107,7 +107,8 @@ builder.Services.AddCors(options =>
                 "http://127.0.0.1:3000",
                 "https://127.0.0.1:3000",
                 "https://*.netlify.app",
-                "https://fila-zero-demo.netlify.app"
+                "https://fila-zero-demo.netlify.app",
+                "https://filazeromvc.netlify.app"
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
