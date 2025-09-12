@@ -1,5 +1,5 @@
-# 🔧 Configurar SQL Server para Acesso Remoto
-
+# 🔧 Configurar SQL Server para Acesso Remo
+gu
 ## 1. Habilitar TCP/IP no SQL Server
 
 ### Via SQL Server Configuration Manager:
