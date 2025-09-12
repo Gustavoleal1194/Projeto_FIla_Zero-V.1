@@ -12,28 +12,7 @@ using FilaZero.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar para aceitar qualquer hostname
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxConcurrentConnections = 1000;
-    options.Limits.MaxConcurrentUpgradedConnections = 1000;
-    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
-    // Desabilitar validação de hostname
-    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(5);
-    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(2);
-    options.Limits.MaxRequestBufferSize = 1024 * 1024; // 1MB
-    options.Limits.MaxResponseBufferSize = 1024 * 1024; // 1MB
-});
-
-// Configurar URLs para aceitar qualquer hostname
-builder.WebHost.UseUrls("http://*:5000");
-
-// Desabilitar validação de hostname
-builder.Services.Configure<Microsoft.AspNetCore.HostFiltering.HostFilteringOptions>(options =>
-{
-    options.AllowedHosts = new[] { "*" };
-    options.AllowEmptyHosts = true;
-});
+// Configuração simplificada para desenvolvimento local
 
 Console.WriteLine("🚀 Iniciando FilaZero Backend...");
 

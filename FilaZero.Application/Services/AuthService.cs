@@ -50,11 +50,7 @@ namespace FilaZero.Application.Services
             if (usuario == null)
                 return null;
 
-            // Verificar se o usuário está vinculado a algum evento
-            var pedidos = await _unitOfWork.Pedidos.FindAsync(p => p.ConsumidorId == usuario.Id);
-            if (!pedidos.Any())
-                return null;
-
+            // Usuário encontrado - pode fazer login para fazer pedidos
             usuario.UltimoLogin = DateTime.UtcNow;
             _unitOfWork.Usuarios.Update(usuario);
             await _unitOfWork.SaveChangesAsync();
