@@ -1,39 +1,14 @@
 [build]
   base = "front-end"
-  publish = "build"
-  command = "npm install && npm run build"
+  publish = "front-end/build"
+  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
-  GENERATE_SOURCEMAP = "false"
-  PUBLIC_URL = "/"
-  CI = "false"
-  DISABLE_ESLINT_PLUGIN = "true"
+  REACT_APP_API_URL = "https://fila-zero-backend.herokuapp.com/api"
 
-# Redirects para SPA
 [[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Redirects específicos para rotas do React
-[[redirects]]
-  from = "/evento/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/login"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/demo"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/carrinho"
   to = "/index.html"
   status = 200
 
@@ -47,15 +22,5 @@
 
 [[headers]]
   for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"

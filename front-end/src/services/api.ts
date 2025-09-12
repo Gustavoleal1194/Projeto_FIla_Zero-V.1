@@ -41,12 +41,29 @@ class ApiService {
         // Interceptor para tratar respostas
         this.api.interceptors.response.use(
             (response) => response,
-            (error) => {
+            async (error) => {
                 if (error.response?.status === 401) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('usuario');
                     window.location.href = '/login';
                 }
+
+                // Retry automático para erro 429 (Too Many Requests)
+                if (error.response?.status === 429) {
+                    const config = error.config;
+                    if (!config._retry) {
+                        config._retry = true;
+                        config._retryCount = 0;
+                    }
+
+                    if (config._retryCount < 3) {
+                        config._retryCount++;
+                        const delay = Math.pow(2, config._retryCount) * 1000; // Exponential backoff
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return this.api(config);
+                    }
+                }
+
                 return Promise.reject(error);
             }
         );

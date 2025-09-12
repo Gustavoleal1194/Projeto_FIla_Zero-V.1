@@ -1,0 +1,37 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore FilaZero.Web/FilaZero.Web.csproj
+    
+    - name: Build
+      run: dotnet build FilaZero.Web/FilaZero.Web.csproj --configuration Release --no-restore
+    
+    - name: Test
+      run: dotnet test FilaZero.Web/FilaZero.Web.csproj --configuration Release --no-build --verbosity normal
+    
+    - name: Deploy to Heroku
+      uses: akhileshns/heroku-deploy@v3.12.12
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_app_name: "fila-zero-backend"
+        heroku_email: "seu-email@exemplo.com"
+        appdir: "FilaZero.Web"
+        usedocker: true

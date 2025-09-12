@@ -15,12 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Configurar para aceitar qualquer hostname
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxConcurrentConnections = 100;
-    options.Limits.MaxConcurrentUpgradedConnections = 100;
+    options.Limits.MaxConcurrentConnections = 1000;
+    options.Limits.MaxConcurrentUpgradedConnections = 1000;
     options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
     // Desabilitar validação de hostname
-    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
-    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(1);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(5);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(2);
+    options.Limits.MaxRequestBufferSize = 1024 * 1024; // 1MB
+    options.Limits.MaxResponseBufferSize = 1024 * 1024; // 1MB
 });
 
 // Configurar URLs para aceitar qualquer hostname
@@ -60,7 +62,13 @@ Console.WriteLine("✅ NotificationService registrado");
 
 // Registrar serviços de segurança
 builder.Services.AddScoped<FilaZero.Domain.Interfaces.Services.IJwtService, FilaZero.Web.Security.JwtService>();
-builder.Services.AddSingleton<FilaZero.Web.Security.RateLimitingService>();
+
+// Configurar Rate Limiting com configuração
+var rateLimitingConfig = builder.Configuration.GetSection("RateLimiting");
+var maxRequests = rateLimitingConfig.GetValue<int>("MaxRequests", 1000);
+var timeWindowMinutes = rateLimitingConfig.GetValue<int>("TimeWindowMinutes", 15);
+builder.Services.AddSingleton<FilaZero.Web.Security.RateLimitingService>(provider => 
+    new FilaZero.Web.Security.RateLimitingService(maxRequests, timeWindowMinutes));
 Console.WriteLine("✅ Serviços de segurança registrados");
 
 // Registrar PagamentoService
@@ -73,7 +81,11 @@ builder.Services.AddScoped<FilaZero.Application.Services.IPixService, FilaZero.A
 Console.WriteLine("✅ Serviços PIX registrados");
 
 // Registrar serviços de cache e logging
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1000; // Limite de 1000 itens no cache
+    options.CompactionPercentage = 0.25; // Remove 25% quando atinge o limite
+});
 builder.Services.AddScoped<ICacheService, CacheService>();
 Console.WriteLine("✅ Cache e logging registrados");
 
@@ -93,7 +105,9 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "https://localhost:3000",
                 "http://127.0.0.1:3000",
-                "https://127.0.0.1:3000"
+                "https://127.0.0.1:3000",
+                "https://*.netlify.app",
+                "https://fila-zero-demo.netlify.app"
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -246,6 +260,12 @@ app.UseHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
     Predicate = check => check.Tags.Contains("ready")
 });
 Console.WriteLine("✅ Health Checks configurados");
+
+// Configurar cleanup automático do rate limiting
+var rateLimitingService = app.Services.GetRequiredService<FilaZero.Web.Security.RateLimitingService>();
+var cleanupTimer = new System.Timers.Timer(TimeSpan.FromMinutes(5).TotalMilliseconds);
+cleanupTimer.Elapsed += (sender, e) => rateLimitingService.CleanupOldRequests();
+cleanupTimer.Start();
 
 Console.WriteLine("🚀 Iniciando servidor na porta 5000...");
 Console.WriteLine("✅ Backend iniciado com sucesso!");
