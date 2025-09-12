@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { demoService } from '../services/demoService';
 import {
     User,
     Lock,
     Eye,
     EyeOff,
     ArrowLeft,
-    Building,
-    CheckCircle,
-    AlertCircle
+    Building
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

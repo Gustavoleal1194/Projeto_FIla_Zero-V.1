@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { demoService } from '../services/demoService';
 import { apiService } from '../services/api';
 import {
     ArrowLeft,
@@ -15,10 +13,7 @@ import {
     ShoppingBag,
     Filter,
     Search,
-    Calendar,
-    User,
     CreditCard,
-    MapPin,
     Menu
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -81,7 +76,6 @@ const ConsumerOrders: React.FC = () => {
     const navigate = useNavigate();
     const { isAuthenticated, usuario } = useAuth();
     const { eventoAtual } = useEvent();
-    const { tema } = useTheme();
 
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);

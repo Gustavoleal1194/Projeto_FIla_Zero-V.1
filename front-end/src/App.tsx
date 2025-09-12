@@ -16,7 +16,6 @@ import Header from './components/Layout/Header';
 
 // Pages
 import Home from './pages/Home';
-import Login from './pages/Login';
 import Cart from './pages/Cart';
 import EventoPage from './pages/EventoPage';
 import EventoHome from './pages/EventoHome';
@@ -32,6 +31,10 @@ import ClientLogin from './pages/ClientLogin';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import KDS from './pages/KDS';
+import ManagerLogin from './pages/ManagerLogin';
+import ManagerDashboard from './pages/ManagerDashboard';
+import ManagerEvento from './pages/ManagerEvento';
+import ManagerMarca from './pages/ManagerMarca';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -59,11 +62,19 @@ function App() {
 
                                             <main>
                                                 <Routes>
-                                                    {/* Home Institucional */}
+                                                    {/* ===== ROTAS PÚBLICAS ===== */}
                                                     <Route path="/" element={<InstitutionalHome />} />
                                                     <Route path="/demo" element={<DemoLogin />} />
+                                                    <Route path="/contato" element={<div>Contato (em desenvolvimento)</div>} />
 
-                                                    {/* App do Consumidor */}
+                                                    {/* ===== ÁREA DO GESTOR ===== */}
+                                                    <Route path="/manager/login" element={<ManagerLogin />} />
+                                                    <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+                                                    <Route path="/manager/evento" element={<ManagerEvento />} />
+                                                    <Route path="/manager/marca" element={<ManagerMarca />} />
+                                                    <Route path="/manager/kds" element={<KDS />} />
+
+                                                    {/* ===== ÁREA DO CONSUMIDOR ===== */}
                                                     <Route path="/evento/:eventoId/login" element={<ConsumerLogin />} />
                                                     <Route path="/evento/:eventoId" element={<ConsumerApp />} />
                                                     <Route path="/evento/:eventoId/menu" element={<ConsumerApp />} />
@@ -71,24 +82,16 @@ function App() {
                                                     <Route path="/evento/:eventoId/perfil" element={<ConsumerProfile />} />
                                                     <Route path="/evento/:eventoId/pedidos" element={<ConsumerOrders />} />
 
-                                                    {/* KDS */}
-                                                    <Route path="/kds/:eventoId" element={<KDS />} />
-
-                                                    {/* Login do Consumidor */}
+                                                    {/* ===== ROTAS LEGADAS (MANTER PARA COMPATIBILIDADE) ===== */}
                                                     <Route path="/login" element={<ConsumerLogin />} />
-
-                                                    {/* Login para clientes (gestores) */}
                                                     <Route path="/client-login" element={<ClientLogin />} />
-
-                                                    {/* Rotas antigas (manter para compatibilidade) */}
                                                     <Route path="/carrinho" element={<Cart />} />
                                                     <Route path="/qr/:eventoId" element={<QRCodeAccess />} />
-
-                                                    {/* Rotas protegidas */}
                                                     <Route path="/dashboard" element={<Dashboard />} />
                                                     <Route path="/pedidos" element={<Orders />} />
-                                                    <Route path="/kds" element={<div>KDS (em desenvolvimento)</div>} />
+                                                    <Route path="/kds" element={<KDS />} />
                                                     <Route path="/eventos" element={<div>Eventos (em desenvolvimento)</div>} />
+
                                                 </Routes>
                                             </main>
 

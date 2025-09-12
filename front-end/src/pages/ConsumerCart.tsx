@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvent } from '../contexts/EventContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { usePayment } from '../contexts/PaymentContext';
 import { PaymentModal } from '../components/Payment/PaymentModal';
 import {
@@ -13,10 +12,7 @@ import {
     ArrowLeft,
     ShoppingBag,
     CreditCard,
-    Smartphone,
-    Banknote,
     CheckCircle,
-    AlertCircle,
     Menu
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -32,9 +28,8 @@ const ConsumerCart: React.FC = () => {
         clearCart,
         getTotalPrice
     } = useCart();
-    const { isAuthenticated, usuario } = useAuth();
+    const { isAuthenticated } = useAuth();
     const { eventoAtual } = useEvent();
-    const { tema } = useTheme();
     const { initializePayment } = usePayment();
 
     const [showPaymentModal, setShowPaymentModal] = useState(false);

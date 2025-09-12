@@ -4,11 +4,8 @@ import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { PaymentRequest } from '../../services/paymentService';
 import { apiService } from '../../services/api';
-import { toast } from 'react-toastify';
 import { PixPaymentModal } from './PixPaymentModal';
 import {
-    CreditCard,
-    Smartphone,
     DollarSign,
     CheckCircle,
     XCircle,
@@ -63,7 +60,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     });
 
     const [paymentResponse, setPaymentResponse] = useState<any>(null);
-    const [observations, setObservations] = useState<Record<string, string>>({});
     const [showPixModal, setShowPixModal] = useState(false);
 
     // Atualizar valor quando carrinho mudar
@@ -112,7 +108,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     quantidade: item.quantidade,
                     precoUnitario: item.produto.preco,
                     precoTotal: item.produto.preco * item.quantidade,
-                    observacoes: observations[item.produto.id] || ''
+                    observacoes: ''
                 })),
                 observacoes: '',
                 valorTotal: getTotalPrice()

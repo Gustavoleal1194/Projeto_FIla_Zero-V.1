@@ -14,7 +14,7 @@ const ConsumerLogin: React.FC = () => {
     const { carregarEvento, eventoAtual } = useEvent();
 
     const [loginMethod, setLoginMethod] = useState<'cpf' | 'codigo'>('cpf');
-    const [cpf, setCpf] = useState('367.535.718-09');
+    const [cpf, setCpf] = useState('123.456.789-00'); // CPF de demonstração
     const [codigo, setCodigo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [evento, setEvento] = useState<any>(null);

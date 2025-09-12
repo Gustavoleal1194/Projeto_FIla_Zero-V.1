@@ -1,379 +1,229 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useEvent } from '../contexts/EventContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
-import { demoService } from '../services/demoService';
+import { useTheme } from '../contexts/ThemeContext';
 import {
+    ArrowLeft,
     ShoppingCart,
     Menu,
-    Clock,
-    MapPin,
-    Phone,
-    Mail,
-    ArrowLeft,
     Users,
     Star,
+    Clock,
+    MapPin,
     Plus,
     Minus,
-    QrCode
+    Filter,
+    Search
 } from 'lucide-react';
-import { QRCodeGenerator } from '../components/QRCode/QRCodeGenerator';
+import toast from 'react-hot-toast';
 
 const EventoHome: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
     const navigate = useNavigate();
-    const { eventoAtual, loading: eventoLoading, error: eventoError, carregarEvento } = useEvent();
-    const { tema } = useTheme();
     const { isAuthenticated, usuario } = useAuth();
-    const { addItem, items, updateQuantity, removeItem, getTotalPrice } = useCart();
+    const { addItem, getTotalItems } = useCart();
+    const { tema } = useTheme();
 
-    // Buscar produtos do evento
-    const { data: produtos, isLoading: produtosLoading } = useQuery(
-        ['produtos', eventoId],
-        () => demoService.getProdutos(eventoId!),
-        {
-            enabled: !!eventoId
-        }
-    );
+    const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
+    const [busca, setBusca] = useState('');
 
-    // Buscar categorias do evento
-    const { data: categorias, isLoading: categoriasLoading } = useQuery(
-        ['categorias', eventoId],
-        () => demoService.getCategorias(eventoId!),
-        {
-            enabled: !!eventoId
-        }
-    );
+    const { data: evento, isLoading: eventoLoading } = useQuery({
+        queryKey: ['evento', eventoId],
+        queryFn: () => apiService.getEvento(eventoId!),
+        enabled: !!eventoId
+    });
+
+    const { data: produtos, isLoading: produtosLoading } = useQuery({
+        queryKey: ['produtos', eventoId],
+        queryFn: () => apiService.getProdutos(eventoId!),
+        enabled: !!eventoId
+    });
+
+    const { data: categorias } = useQuery({
+        queryKey: ['categorias', eventoId],
+        queryFn: () => apiService.getCategoriasByEvento(eventoId!),
+        enabled: !!eventoId
+    });
 
     useEffect(() => {
-        if (eventoId && eventoAtual?.id !== eventoId) {
-            carregarEvento(eventoId);
+        if (!isAuthenticated) {
+            navigate('/login');
         }
-    }, [eventoId, carregarEvento, eventoAtual?.id]);
+    }, [isAuthenticated, navigate]);
+
+    const handleAddToCart = (produto: any) => {
+        addItem(produto, 1);
+        toast.success(`${produto.nome} adicionado ao carrinho!`);
+    };
+
+    const produtosFiltrados = produtos?.filter(produto => {
+        const matchCategoria = filtroCategoria === 'todas' || produto.categoriaId === filtroCategoria;
+        const matchBusca = produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
+                          produto.descricao.toLowerCase().includes(busca.toLowerCase());
+        return matchCategoria && matchBusca;
+    });
 
     if (eventoLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4"
-                        style={{ borderColor: tema.corPrimaria }}></div>
-                    <p className="text-gray-600">Carregando evento...</p>
-                </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    if (eventoError || !eventoAtual) {
+    if (!evento) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Evento não encontrado</h1>
-                    <p className="text-gray-600 mb-4">O evento que você está procurando não existe.</p>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                        Evento não encontrado
+                    </h1>
                     <button
                         onClick={() => navigate('/')}
-                        className="px-6 py-2 rounded-lg text-white font-medium"
-                        style={{ backgroundColor: tema.corPrimaria }}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
                     >
-                        Voltar ao início
+                        Voltar
                     </button>
                 </div>
             </div>
         );
     }
-
-    const getProdutosPorCategoria = (categoriaId: string) => {
-        return produtos?.filter(produto => produto.categoriaId === categoriaId) || [];
-    };
-
-    const getQuantidadeNoCarrinho = (produtoId: string) => {
-        const item = items.find(item => item.produto.id === produtoId);
-        return item ? item.quantidade : 0;
-    };
-
-    const adicionarAoCarrinho = (produto: any) => {
-        addItem(produto, 1);
-    };
-
-    const removerDoCarrinho = (produtoId: string) => {
-        removeItem(produtoId);
-    };
-
-    const alterarQuantidade = (produtoId: string, quantidade: number) => {
-        if (quantidade <= 0) {
-            removerDoCarrinho(produtoId);
-        } else {
-            updateQuantity(produtoId, quantidade);
-        }
-    };
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header do Evento */}
-            <div className="bg-white shadow-sm border-b sticky top-0 z-50">
+            {/* Header */}
+            <div className="bg-white shadow-sm sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center">
                             <button
                                 onClick={() => navigate('/')}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="mr-4 p-2 text-gray-600 hover:text-gray-900"
                             >
-                                <ArrowLeft className="h-5 w-5 text-gray-600" />
+                                <ArrowLeft className="w-6 h-6" />
                             </button>
-
-                            {eventoAtual.logoUrl && (
-                                <img
-                                    src={eventoAtual.logoUrl}
-                                    alt={eventoAtual.nome}
-                                    className="h-10 w-10 rounded-lg object-cover"
-                                />
-                            )}
-
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">{eventoAtual.nome}</h1>
-                                <p className="text-sm text-gray-500">{eventoAtual.cidade}, {eventoAtual.estado}</p>
+                                <h1 className="text-xl font-semibold text-gray-900">
+                                    {evento.nome}
+                                </h1>
+                                <p className="text-sm text-gray-500">
+                                    {evento.endereco}
+                                </p>
                             </div>
                         </div>
-
+                        
                         <div className="flex items-center space-x-4">
-                            {/* QR Code */}
-                            <button
-                                onClick={() => {
-                                    const modal = document.getElementById('qr-code-modal');
-                                    if (modal) {
-                                        modal.classList.remove('hidden');
-                                    }
-                                }}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                title="Gerar QR Code"
-                            >
-                                <QrCode className="h-6 w-6 text-gray-600" />
-                            </button>
-
-                            {/* Carrinho */}
                             <button
                                 onClick={() => navigate(`/evento/${eventoId}/carrinho`)}
-                                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="relative p-2 text-gray-600 hover:text-gray-900"
                             >
-                                <ShoppingCart className="h-6 w-6 text-gray-600" />
-                                {items.length > 0 && (
-                                    <span
-                                        className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                                    >
-                                        {items.reduce((total, item) => total + item.quantidade, 0)}
+                                <ShoppingCart className="w-6 h-6" />
+                                {getTotalItems() > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                        {getTotalItems()}
                                     </span>
                                 )}
                             </button>
-
-                            {/* Total do carrinho */}
-                            {items.length > 0 && (
-                                <div className="text-sm font-medium text-gray-900">
-                                    R$ {getTotalPrice().toFixed(2)}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Hero Section do Evento */}
-            <div
-                className="h-64 bg-cover bg-center relative"
-                style={{
-                    backgroundImage: `url(${eventoAtual.logoUrl})`,
-                    backgroundColor: eventoAtual.corPrimaria
-                }}
-            >
-                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-                <div className="relative h-full flex items-center justify-center">
-                    <div className="text-center text-white">
-                        <h2 className="text-4xl font-bold mb-2">{eventoAtual.nome}</h2>
-                        <p className="text-xl text-gray-200">{eventoAtual.descricao}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Informações do Evento */}
-            <div className="bg-white py-6">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="flex items-center space-x-3">
-                            <MapPin className="h-5 w-5 text-gray-400" />
-                            <div>
-                                <h3 className="font-medium text-gray-900">Endereço</h3>
-                                <p className="text-sm text-gray-600">{eventoAtual.endereco}</p>
-                            </div>
-                        </div>
-
-                        {eventoAtual.telefone && (
-                            <div className="flex items-center space-x-3">
-                                <Phone className="h-5 w-5 text-gray-400" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Telefone</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.telefone}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {eventoAtual.email && (
-                            <div className="flex items-center space-x-3">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Email</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.email}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Cardápio */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Cardápio</h2>
-                    <p className="text-gray-600">Escolha seus itens favoritos</p>
+                {/* Filtros */}
+                <div className="mb-8">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar produtos..."
+                                    value={busca}
+                                    onChange={(e) => setBusca(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="sm:w-48">
+                            <select
+                                value={filtroCategoria}
+                                onChange={(e) => setFiltroCategoria(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="todas">Todas as categorias</option>
+                                {categorias?.map((categoria: any) => (
+                                    <option key={categoria.id} value={categoria.id}>
+                                        {categoria.nome}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                {categoriasLoading ? (
-                    <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4"
-                            style={{ borderColor: tema.corPrimaria }}></div>
-                        <p className="text-gray-600">Carregando cardápio...</p>
+                {/* Produtos */}
+                {produtosLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
                 ) : (
-                    <div className="space-y-12">
-                        {categorias?.map((categoria) => {
-                            const produtosCategoria = getProdutosPorCategoria(categoria.id);
-
-                            if (produtosCategoria.length === 0) return null;
-
-                            return (
-                                <div key={categoria.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div
-                                        className="px-6 py-4 text-white"
-                                        style={{ backgroundColor: categoria.cor }}
-                                    >
-                                        <h3 className="text-xl font-bold">{categoria.nome}</h3>
-                                        <p className="text-sm opacity-90">{categoria.descricao}</p>
-                                    </div>
-
-                                    <div className="p-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {produtosCategoria.map((produto) => {
-                                                const quantidadeNoCarrinho = getQuantidadeNoCarrinho(produto.id);
-
-                                                return (
-                                                    <div key={produto.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                                                        <div className="aspect-w-16 aspect-h-9">
-                                                            <img
-                                                                src={produto.imagemUrl}
-                                                                alt={produto.nome}
-                                                                className="w-full h-48 object-cover"
-                                                            />
-                                                        </div>
-
-                                                        <div className="p-4">
-                                                            <h4 className="font-semibold text-gray-900 mb-2">{produto.nome}</h4>
-                                                            <p className="text-sm text-gray-600 mb-3">{produto.descricao}</p>
-
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <span className="text-lg font-bold" style={{ color: tema.corPrimaria }}>
-                                                                    R$ {produto.preco.toFixed(2)}
-                                                                </span>
-                                                                <div className="flex items-center text-sm text-gray-500">
-                                                                    <Clock className="h-4 w-4 mr-1" />
-                                                                    {produto.tempoPreparoMinutos} min
-                                                                </div>
-                                                            </div>
-
-                                                            {quantidadeNoCarrinho > 0 ? (
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <button
-                                                                            onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho - 1)}
-                                                                            className="p-1 rounded-full hover:bg-gray-100"
-                                                                        >
-                                                                            <Minus className="h-4 w-4" />
-                                                                        </button>
-                                                                        <span className="w-8 text-center font-medium">{quantidadeNoCarrinho}</span>
-                                                                        <button
-                                                                            onClick={() => alterarQuantidade(produto.id, quantidadeNoCarrinho + 1)}
-                                                                            className="p-1 rounded-full hover:bg-gray-100"
-                                                                        >
-                                                                            <Plus className="h-4 w-4" />
-                                                                        </button>
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={() => removerDoCarrinho(produto.id)}
-                                                                        className="text-red-500 text-sm hover:text-red-700"
-                                                                    >
-                                                                        Remover
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => adicionarAoCarrinho(produto)}
-                                                                    className="w-full py-2 px-4 rounded-lg text-white font-medium transition-colors"
-                                                                    style={{ backgroundColor: tema.corPrimaria }}
-                                                                >
-                                                                    Adicionar ao Carrinho
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {produtosFiltrados?.map((produto) => (
+                            <div key={produto.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {produto.nome}
+                                        </h3>
+                                        <div className="flex items-center text-yellow-500">
+                                            <Star className="w-4 h-4 fill-current" />
+                                            <span className="ml-1 text-sm font-medium">4.5</span>
                                         </div>
                                     </div>
+                                    
+                                    <p className="text-gray-600 mb-4 line-clamp-2">
+                                        {produto.descricao}
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-2xl font-bold text-green-600">
+                                            R$ {produto.preco.toFixed(2)}
+                                        </span>
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <Clock className="w-4 h-4 mr-1" />
+                                            <span>{produto.tempoPreparoMinutos} min</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => handleAddToCart(produto)}
+                                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Adicionar ao Carrinho
+                                    </button>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 )}
-            </div>
 
-            {/* Botão Flutuante do Carrinho */}
-            {items.length > 0 && (
-                <div className="fixed bottom-6 right-6 z-50">
-                    <button
-                        onClick={() => navigate(`/evento/${eventoId}/carrinho`)}
-                        className="flex items-center space-x-3 px-6 py-4 rounded-full text-white font-medium shadow-lg hover:shadow-xl transition-all"
-                        style={{ backgroundColor: tema.corPrimaria }}
-                    >
-                        <ShoppingCart className="h-6 w-6" />
-                        <div className="text-left">
-                            <div className="text-sm opacity-90">
-                                {items.reduce((total, item) => total + item.quantidade, 0)} itens
-                            </div>
-                            <div className="font-bold">
-                                R$ {getTotalPrice().toFixed(2)}
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            )}
-
-            {/* Modal QR Code */}
-            <div
-                id="qr-code-modal"
-                className="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4"
-                onClick={(e) => {
-                    if (e.target === e.currentTarget) {
-                        e.currentTarget.classList.add('hidden');
-                    }
-                }}
-            >
-                <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-                    <QRCodeGenerator
-                        className="border-0 shadow-none"
-                        showControls={true}
-                        autoGenerate={true}
-                    />
-                </div>
+                {produtosFiltrados?.length === 0 && !produtosLoading && (
+                    <div className="text-center py-12">
+                        <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            Nenhum produto encontrado
+                        </h3>
+                        <p className="text-gray-500">
+                            Tente ajustar os filtros ou buscar por outros termos.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-    CheckCircle,
     Users,
     Clock,
     Smartphone,
@@ -9,9 +8,7 @@ import {
     Shield,
     Zap,
     Star,
-    ArrowRight,
-    Play,
-    Download
+    Play
 } from 'lucide-react';
 
 const InstitutionalHome: React.FC = () => {
@@ -95,10 +92,10 @@ const InstitutionalHome: React.FC = () => {
                                 Demo
                             </Link>
                             <Link
-                                to="/client-login"
+                                to="/manager/login"
                                 className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                             >
-                                Área do Cliente
+                                Área do Gestor
                             </Link>
                             <Link
                                 to="/contato"
@@ -283,6 +280,12 @@ const InstitutionalHome: React.FC = () => {
                             Solicitar Orçamento
                         </Link>
                         <Link
+                            to="/manager/login"
+                            className="bg-green-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition-colors"
+                        >
+                            Área do Gestor
+                        </Link>
+                        <Link
                             to="/login"
                             className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
                         >
@@ -307,7 +310,7 @@ const InstitutionalHome: React.FC = () => {
                             <ul className="space-y-2 text-gray-400">
                                 <li><Link to="/demo" className="hover:text-white">Demo</Link></li>
                                 <li><Link to="/login" className="hover:text-white">Acessar Evento</Link></li>
-                                <li><Link to="/client-login" className="hover:text-white">Área do Cliente</Link></li>
+                                <li><Link to="/manager/login" className="hover:text-white">Área do Gestor</Link></li>
                             </ul>
                         </div>
                         <div>

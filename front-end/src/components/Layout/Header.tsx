@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { ShoppingCart, User, LogOut, Menu, X, Utensils } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, BarChart3, Calendar, Palette, Utensils } from 'lucide-react';
+import UserDropdown from '../UserDropdown';
 
 const Header: React.FC = () => {
     const { usuario, logout, isAuthenticated } = useAuth();
     const { getTotalItems } = useCart();
     const location = useLocation();
+    const params = useParams();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     const isActive = (path: string) => location.pathname === path;
+
+    // Determinar o contexto da navegação
+    const isManagerArea = location.pathname.startsWith('/manager');
+    const isConsumerArea = location.pathname.startsWith('/evento/');
+    const isPublicArea = !isManagerArea && !isConsumerArea;
+
+    // Obter eventoId se estiver na área do consumidor
+    const eventoId = params.eventoId;
 
     const handleLogout = () => {
         logout();
@@ -18,7 +29,7 @@ const Header: React.FC = () => {
     };
 
     return (
-        <header className="bg-white shadow-lg sticky top-0 z-50">
+        <header className="bg-white shadow-lg sticky top-0 z-30">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
@@ -29,46 +40,110 @@ const Header: React.FC = () => {
                         <span className="text-xl font-bold text-gray-900">Fila Zero</span>
                     </Link>
 
-                    {/* Desktop Navigation */}
+                    {/* Desktop Navigation - Contextual */}
                     <nav className="hidden md:flex items-center space-x-8">
-                        <Link
-                            to="/"
-                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/')
-                                ? 'text-blue-600 bg-blue-50'
-                                : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                                }`}
-                        >
-                            Início
-                        </Link>
-
-                        {isAuthenticated && (
+                        {/* Navegação Pública */}
+                        {isPublicArea && (
                             <>
                                 <Link
-                                    to="/dashboard"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/dashboard')
+                                    to="/"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/')
                                         ? 'text-blue-600 bg-blue-50'
                                         : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                         }`}
                                 >
+                                    Início
+                                </Link>
+                                <Link
+                                    to="/demo"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/demo')
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    Demo
+                                </Link>
+                            </>
+                        )}
+
+                        {/* Navegação do Gestor */}
+                        {isManagerArea && isAuthenticated && !location.pathname.includes('/login') && !location.pathname.includes('/register') && (
+                            <>
+                                <Link
+                                    to="/manager/dashboard"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/dashboard')
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <BarChart3 className="w-4 h-4 inline mr-1" />
                                     Dashboard
                                 </Link>
                                 <Link
-                                    to="/pedidos"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/pedidos')
+                                    to="/manager/evento"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/evento')
                                         ? 'text-blue-600 bg-blue-50'
                                         : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                         }`}
                                 >
-                                    Pedidos
+                                    <Calendar className="w-4 h-4 inline mr-1" />
+                                    Evento
                                 </Link>
                                 <Link
-                                    to="/kds"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/kds')
+                                    to="/manager/marca"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/marca')
                                         ? 'text-blue-600 bg-blue-50'
                                         : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                         }`}
                                 >
+                                    <Palette className="w-4 h-4 inline mr-1" />
+                                    Marca
+                                </Link>
+                                <Link
+                                    to="/manager/kds"
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/kds')
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <Utensils className="w-4 h-4 inline mr-1" />
                                     KDS
+                                </Link>
+                            </>
+                        )}
+
+                        {/* Navegação do Consumidor */}
+                        {isConsumerArea && isAuthenticated && (
+                            <>
+                                <Link
+                                    to={`/evento/${eventoId}`}
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}`)
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <Utensils className="w-4 h-4 inline mr-1" />
+                                    Cardápio
+                                </Link>
+                                <Link
+                                    to={`/evento/${eventoId}/carrinho`}
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}/carrinho`)
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <ShoppingCart className="w-4 h-4 inline mr-1" />
+                                    Carrinho
+                                </Link>
+                                <Link
+                                    to={`/evento/${eventoId}/pedidos`}
+                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}/pedidos`)
+                                        ? 'text-blue-600 bg-blue-50'
+                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <Calendar className="w-4 h-4 inline mr-1" />
+                                    Pedidos
                                 </Link>
                             </>
                         )}
@@ -76,23 +151,26 @@ const Header: React.FC = () => {
 
                     {/* Right side */}
                     <div className="flex items-center space-x-4">
-                        {/* Cart */}
-                        <Link
-                            to="/carrinho"
-                            className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
-                        >
-                            <ShoppingCart className="w-6 h-6" />
-                            {getTotalItems() > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                    {getTotalItems()}
-                                </span>
-                            )}
-                        </Link>
+                        {/* Cart - Apenas na área do consumidor */}
+                        {isConsumerArea && (
+                            <Link
+                                to={`/evento/${eventoId}/carrinho`}
+                                className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+                            >
+                                <ShoppingCart className="w-6 h-6" />
+                                {getTotalItems() > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                        {getTotalItems()}
+                                    </span>
+                                )}
+                            </Link>
+                        )}
 
                         {/* User Menu */}
                         {isAuthenticated ? (
-                            <div className="relative">
+                            <>
                                 <button
+                                    ref={buttonRef}
                                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                                     className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
                                 >
@@ -100,43 +178,35 @@ const Header: React.FC = () => {
                                     <span className="hidden sm:block">{usuario?.nome}</span>
                                 </button>
 
-                                {/* Dropdown Menu */}
-                                {isMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                        <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                                            <div className="font-medium">{usuario?.nome}</div>
-                                            <div className="text-gray-500">{usuario?.email}</div>
-                                        </div>
-
-                                        {/* Opção para ir ao cardápio do evento */}
-                                        {usuario?.eventoVinculado && (
-                                            <Link
-                                                to={`/evento/${usuario.eventoVinculado.id}/menu`}
-                                                onClick={() => setIsMenuOpen(false)}
-                                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                            >
-                                                <Utensils className="w-4 h-4 mr-2" />
-                                                Cardápio do Evento
-                                            </Link>
-                                        )}
-
-                                        <button
-                                            onClick={handleLogout}
-                                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                        >
-                                            <LogOut className="w-4 h-4 mr-2" />
-                                            Sair
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                <UserDropdown
+                                    isOpen={isMenuOpen}
+                                    onClose={() => setIsMenuOpen(false)}
+                                    usuario={usuario!}
+                                    isManagerArea={isManagerArea}
+                                    isConsumerArea={isConsumerArea}
+                                    isPublicArea={isPublicArea}
+                                    eventoId={eventoId}
+                                    onLogout={handleLogout}
+                                    buttonRef={buttonRef}
+                                />
+                            </>
                         ) : (
-                            <Link
-                                to="/login"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                            >
-                                Entrar
-                            </Link>
+                            <div className="flex items-center space-x-2">
+                                {isPublicArea && (
+                                    <Link
+                                        to="/manager/login"
+                                        className="px-3 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                    >
+                                        Gestor
+                                    </Link>
+                                )}
+                                <Link
+                                    to={isConsumerArea ? `/evento/${eventoId}/login` : "/login"}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                >
+                                    Entrar
+                                </Link>
+                            </div>
                         )}
 
                         {/* Mobile menu button */}
@@ -149,65 +219,122 @@ const Header: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Mobile Navigation */}
+                {/* Mobile Navigation - Contextual */}
                 {isMenuOpen && (
                     <div className="md:hidden border-t border-gray-200 py-4">
                         <nav className="flex flex-col space-y-2">
-                            <Link
-                                to="/"
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/')
-                                    ? 'text-blue-600 bg-blue-50'
-                                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                                    }`}
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                Início
-                            </Link>
-
-                            {isAuthenticated && (
+                            {/* Navegação Pública */}
+                            {isPublicArea && (
                                 <>
                                     <Link
-                                        to="/dashboard"
-                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/dashboard')
+                                        to="/"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/')
                                             ? 'text-blue-600 bg-blue-50'
                                             : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                             }`}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
+                                        Início
+                                    </Link>
+                                    <Link
+                                        to="/demo"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/demo')
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Demo
+                                    </Link>
+                                </>
+                            )}
+
+                            {/* Navegação do Gestor */}
+                            {isManagerArea && isAuthenticated && (
+                                <>
+                                    <Link
+                                        to="/manager/dashboard"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/dashboard')
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <BarChart3 className="w-4 h-4 inline mr-2" />
                                         Dashboard
                                     </Link>
                                     <Link
-                                        to="/pedidos"
-                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/pedidos')
+                                        to="/manager/evento"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/evento')
                                             ? 'text-blue-600 bg-blue-50'
                                             : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                             }`}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
-                                        Pedidos
+                                        <Calendar className="w-4 h-4 inline mr-2" />
+                                        Evento
                                     </Link>
                                     <Link
-                                        to="/kds"
-                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/kds')
+                                        to="/manager/marca"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/marca')
                                             ? 'text-blue-600 bg-blue-50'
                                             : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                                             }`}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
+                                        <Palette className="w-4 h-4 inline mr-2" />
+                                        Marca
+                                    </Link>
+                                    <Link
+                                        to="/manager/kds"
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/manager/kds')
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Utensils className="w-4 h-4 inline mr-2" />
                                         KDS
                                     </Link>
+                                </>
+                            )}
 
-                                    {/* Opção para ir ao cardápio do evento no mobile */}
-                                    {usuario?.eventoVinculado && (
-                                        <Link
-                                            to={`/evento/${usuario.eventoVinculado.id}/menu`}
-                                            className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors flex items-center"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <Utensils className="w-4 h-4 mr-2" />
-                                            Cardápio do Evento
-                                        </Link>
-                                    )}
+                            {/* Navegação do Consumidor */}
+                            {isConsumerArea && isAuthenticated && (
+                                <>
+                                    <Link
+                                        to={`/evento/${eventoId}`}
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}`)
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Utensils className="w-4 h-4 inline mr-2" />
+                                        Cardápio
+                                    </Link>
+                                    <Link
+                                        to={`/evento/${eventoId}/carrinho`}
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}/carrinho`)
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <ShoppingCart className="w-4 h-4 inline mr-2" />
+                                        Carrinho
+                                    </Link>
+                                    <Link
+                                        to={`/evento/${eventoId}/pedidos`}
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(`/evento/${eventoId}/pedidos`)
+                                            ? 'text-blue-600 bg-blue-50'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                            }`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Calendar className="w-4 h-4 inline mr-2" />
+                                        Pedidos
+                                    </Link>
                                 </>
                             )}
                         </nav>

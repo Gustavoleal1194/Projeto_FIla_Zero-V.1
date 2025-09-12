@@ -10,14 +10,109 @@ import {
     Clock,
     CheckCircle,
     Package,
-    User,
-    Calendar,
     AlertCircle,
-    Play,
-    Pause,
-    Square
+    Eye,
+    EyeOff,
+    ChefHat,
+    Users,
+    Timer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Dados de demonstração para a tela KDS
+const dadosDemonstracao = {
+    pedidos: [
+        {
+            id: 'PED001',
+            numero: '001',
+            cliente: 'João Silva',
+            mesa: 'Mesa 5',
+            status: 'preparando',
+            dataHora: new Date(Date.now() - 5 * 60 * 1000), // 5 minutos atrás
+            total: 45.90,
+            itens: [
+                {
+                    id: 'ITEM001',
+                    nome: 'Hambúrguer Clássico',
+                    quantidade: 2,
+                    observacoes: 'Sem cebola',
+                    status: 'preparando',
+                    tempoPreparo: 15,
+                    categoria: 'Lanches'
+                },
+                {
+                    id: 'ITEM002',
+                    nome: 'Batata Frita',
+                    quantidade: 1,
+                    observacoes: 'Bem crocante',
+                    status: 'aguardando',
+                    tempoPreparo: 8,
+                    categoria: 'Acompanhamentos'
+                }
+            ]
+        },
+        {
+            id: 'PED002',
+            numero: '002',
+            cliente: 'Maria Santos',
+            mesa: 'Mesa 12',
+            status: 'aguardando',
+            dataHora: new Date(Date.now() - 2 * 60 * 1000), // 2 minutos atrás
+            total: 32.50,
+            itens: [
+                {
+                    id: 'ITEM003',
+                    nome: 'Pizza Margherita',
+                    quantidade: 1,
+                    observacoes: 'Borda recheada',
+                    status: 'aguardando',
+                    tempoPreparo: 20,
+                    categoria: 'Pizzas'
+                }
+            ]
+        },
+        {
+            id: 'PED003',
+            numero: '003',
+            cliente: 'Carlos Oliveira',
+            mesa: 'Mesa 8',
+            status: 'pronto',
+            dataHora: new Date(Date.now() - 15 * 60 * 1000), // 15 minutos atrás
+            total: 28.90,
+            itens: [
+                {
+                    id: 'ITEM004',
+                    nome: 'Salada Caesar',
+                    quantidade: 1,
+                    observacoes: 'Sem croutons',
+                    status: 'pronto',
+                    tempoPreparo: 10,
+                    categoria: 'Saladas'
+                },
+                {
+                    id: 'ITEM005',
+                    nome: 'Refrigerante',
+                    quantidade: 2,
+                    observacoes: '',
+                    status: 'pronto',
+                    tempoPreparo: 2,
+                    categoria: 'Bebidas'
+                }
+            ]
+        }
+    ],
+    estatisticas: {
+        pedidosHoje: 24,
+        pedidosPreparando: 3,
+        pedidosProntos: 2,
+        tempoMedioPreparo: 12,
+        itensMaisVendidos: [
+            { nome: 'Hambúrguer Clássico', quantidade: 15 },
+            { nome: 'Pizza Margherita', quantidade: 12 },
+            { nome: 'Batata Frita', quantidade: 20 }
+        ]
+    }
+};
 
 const KDS: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
@@ -25,8 +120,10 @@ const KDS: React.FC = () => {
     const { token } = useAuth();
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [filtroStatus, setFiltroStatus] = useState<string>('todos');
+    const [mostrarDetalhes, setMostrarDetalhes] = useState<Record<string, boolean>>({});
+    const [modoDemonstracao] = useState(!eventoId);
 
-    // SignalR
+    // SignalR (apenas se não for modo demonstração)
     const {
         connection,
         isConnected,
@@ -36,195 +133,141 @@ const KDS: React.FC = () => {
         leaveKDSGroup
     } = useSignalR(token || undefined);
 
-    // Buscar pedidos para KDS
+    // Buscar pedidos para KDS (apenas se não for modo demonstração)
     const { data: pedidos, isLoading: pedidosLoading, refetch: refetchPedidos } = useQuery(
         ['kds-pedidos', eventoId],
         () => apiService.getPedidosParaKDS(eventoId!),
         {
-            enabled: !!eventoId,
-            refetchInterval: autoRefresh ? 5000 : false, // Atualizar a cada 5 segundos
+            enabled: !!eventoId && !modoDemonstracao,
+            refetchInterval: autoRefresh ? 5000 : false,
         }
     );
 
-    // Buscar estatísticas do KDS
-    const { data: estatisticas } = useQuery(
+    // Buscar estatísticas (apenas se não for modo demonstração)
+    const { data: estatisticas, refetch: refetchEstatisticas } = useQuery(
         ['kds-estatisticas', eventoId],
         () => apiService.getEstatisticasKDS(eventoId!),
         {
-            enabled: !!eventoId,
+            enabled: !!eventoId && !modoDemonstracao,
+            refetchInterval: autoRefresh ? 30000 : false,
         }
     );
 
-    // Conectar SignalR
+    // Usar dados de demonstração se não houver eventoId
+    const pedidosExibidos = modoDemonstracao ? dadosDemonstracao.pedidos : (pedidos as any)?.data || [];
+    const estatisticasExibidas = modoDemonstracao ? dadosDemonstracao.estatisticas : (estatisticas as any)?.data;
+
+    // Filtrar pedidos por status
+    const pedidosFiltrados = pedidosExibidos.filter((pedido: any) => {
+        if (filtroStatus === 'todos') return true;
+        return pedido.status === filtroStatus;
+    });
+
+    // Configurar SignalR (apenas se não for modo demonstração)
     useEffect(() => {
-        if (token) {
+        if (!modoDemonstracao && eventoId && token) {
             startConnection();
         }
-
         return () => {
-            stopConnection();
-        };
-    }, [token, startConnection, stopConnection]);
-
-    // Entrar no grupo do evento quando conectar
-    useEffect(() => {
-        if (isConnected && eventoId) {
-            joinKDSGroup(eventoId);
-        }
-
-        return () => {
-            if (eventoId) {
-                leaveKDSGroup(eventoId);
+            if (!modoDemonstracao) {
+                stopConnection();
             }
         };
-    }, [isConnected, eventoId, joinKDSGroup, leaveKDSGroup]);
+    }, [eventoId, token, modoDemonstracao, startConnection, stopConnection]);
 
     // Configurar listeners do SignalR
     useEffect(() => {
-        if (connection) {
-            // Novo pedido
-            connection.on('NovoPedido', (eventoId: string, pedidoId: string, numeroPedido: string) => {
-                if (eventoId === eventoId) {
-                    toast.success(`Novo pedido: #${numeroPedido}`);
+        if (!modoDemonstracao && connection && isConnected && eventoId) {
+            joinKDSGroup(eventoId);
+
+            // Listener para novos pedidos
+            connection.on('NovoPedido', (pedido: any) => {
+                if (pedido.eventoId === eventoId) {
+                    toast.success(`Novo pedido #${pedido.numero} recebido!`);
                     refetchPedidos();
                 }
             });
 
-            // Atualização de pedido
-            connection.on('AtualizacaoPedido', (eventoId: string, pedidoId: string, numeroPedido: string, status: string, consumidorId: string) => {
-                if (eventoId === eventoId) {
-                    toast(`Pedido #${numeroPedido} atualizado: ${status}`, { icon: 'ℹ️' });
+            // Listener para atualizações de pedidos
+            connection.on('AtualizacaoPedido', (pedido: any) => {
+                if (pedido.eventoId === eventoId) {
+                    toast(`Pedido #${pedido.numero} atualizado!`);
                     refetchPedidos();
                 }
             });
 
-            // Status alterado
-            connection.on('StatusPedidoAlterado', (pedidoId: string, novoStatus: string) => {
-                toast(`Status do pedido alterado: ${novoStatus}`, { icon: 'ℹ️' });
-                refetchPedidos();
+            // Listener para mudanças de status
+            connection.on('StatusPedidoAlterado', (data: any) => {
+                if (data.eventoId === eventoId) {
+                    toast.success(`Status do pedido #${data.numeroPedido} alterado para ${data.novoStatus}!`);
+                    refetchPedidos();
+                }
             });
-        }
 
-        return () => {
-            if (connection) {
+            return () => {
                 connection.off('NovoPedido');
                 connection.off('AtualizacaoPedido');
                 connection.off('StatusPedidoAlterado');
-            }
-        };
-    }, [connection, eventoId, refetchPedidos]);
-
-    const pedidosFiltrados = pedidos?.filter(pedido => {
-        if (filtroStatus === 'todos') return true;
-        return pedido.status.toString() === filtroStatus;
-    }) || [];
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'AguardandoPagamento':
-                return <Clock className="h-5 w-5 text-yellow-500" />;
-            case 'Pago':
-                return <CheckCircle className="h-5 w-5 text-blue-500" />;
-            case 'Confirmado':
-                return <CheckCircle className="h-5 w-5 text-green-500" />;
-            case 'EmPreparo':
-                return <Package className="h-5 w-5 text-orange-500" />;
-            case 'Pronto':
-                return <CheckCircle className="h-5 w-5 text-green-600" />;
-            case 'Entregue':
-                return <CheckCircle className="h-5 w-5 text-green-700" />;
-            case 'Cancelado':
-                return <AlertCircle className="h-5 w-5 text-red-500" />;
-            default:
-                return <Clock className="h-5 w-5 text-gray-500" />;
+                leaveKDSGroup(eventoId);
+            };
         }
+    }, [connection, isConnected, eventoId, modoDemonstracao, joinKDSGroup, leaveKDSGroup, refetchPedidos]);
+
+    const toggleDetalhes = (pedidoId: string) => {
+        setMostrarDetalhes(prev => ({
+            ...prev,
+            [pedidoId]: !prev[pedidoId]
+        }));
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'AguardandoPagamento':
+            case 'aguardando':
                 return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            case 'Pago':
+            case 'preparando':
                 return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 'Confirmado':
+            case 'pronto':
                 return 'bg-green-100 text-green-800 border-green-200';
-            case 'EmPreparo':
-                return 'bg-orange-100 text-orange-800 border-orange-200';
-            case 'Pronto':
-                return 'bg-green-100 text-green-800 border-green-200';
-            case 'Entregue':
-                return 'bg-green-100 text-green-800 border-green-200';
-            case 'Cancelado':
-                return 'bg-red-100 text-red-800 border-red-200';
+            case 'entregue':
+                return 'bg-gray-100 text-gray-800 border-gray-200';
             default:
                 return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
 
-    const getStatusText = (status: string) => {
+    const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'AguardandoPagamento':
-                return 'Aguardando Pagamento';
-            case 'Pago':
-                return 'Pago';
-            case 'Confirmado':
-                return 'Confirmado';
-            case 'EmPreparo':
-                return 'Em Preparo';
-            case 'Pronto':
-                return 'Pronto';
-            case 'Entregue':
-                return 'Entregue';
-            case 'Cancelado':
-                return 'Cancelado';
+            case 'aguardando':
+                return <Clock className="w-4 h-4" />;
+            case 'preparando':
+                return <Package className="w-4 h-4" />;
+            case 'pronto':
+                return <CheckCircle className="w-4 h-4" />;
+            case 'entregue':
+                return <CheckCircle className="w-4 h-4" />;
             default:
-                return status;
+                return <AlertCircle className="w-4 h-4" />;
         }
     };
 
-    const handleAtualizarStatus = async (pedidoId: string, novoStatus: string) => {
-        try {
-            await apiService.atualizarStatusPedido(pedidoId, novoStatus);
-            toast.success('Status atualizado com sucesso!');
-            refetchPedidos();
-        } catch (error) {
-            toast.error('Erro ao atualizar status do pedido');
-        }
+    const formatarTempo = (dataHora: Date) => {
+        const agora = new Date();
+        const diffMs = agora.getTime() - dataHora.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+
+        if (diffMin < 1) return 'Agora';
+        if (diffMin < 60) return `${diffMin}min`;
+
+        const diffHoras = Math.floor(diffMin / 60);
+        return `${diffHoras}h ${diffMin % 60}min`;
     };
 
-    const handleMarcarPronto = async (pedidoId: string) => {
-        try {
-            await apiService.atualizarStatusPedido(pedidoId, 'Pronto');
-            toast.success('Pedido marcado como pronto!');
-            refetchPedidos();
-        } catch (error) {
-            toast.error('Erro ao marcar pedido como pronto');
-        }
-    };
-
-    const handleMarcarEntregue = async (pedidoId: string) => {
-        try {
-            await apiService.atualizarStatusPedido(pedidoId, 'Entregue');
-            toast.success('Pedido marcado como entregue!');
-            refetchPedidos();
-        } catch (error) {
-            toast.error('Erro ao marcar pedido como entregue');
-        }
-    };
-
-    if (!eventoId) {
+    if (pedidosLoading && !modoDemonstracao) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Evento não encontrado</h2>
-                    <p className="text-gray-600 mb-6">O evento especificado não existe ou foi removido.</p>
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-                    >
-                        Voltar ao Dashboard
-                    </button>
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                    <p className="text-gray-600">Carregando pedidos...</p>
                 </div>
             </div>
         );
@@ -235,65 +278,94 @@ const KDS: React.FC = () => {
             {/* Header */}
             <div className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
+                    <div className="flex justify-between items-center py-4">
                         <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                                <ArrowLeft className="h-5 w-5 text-gray-600" />
-                            </button>
-                            <h1 className="text-2xl font-bold text-gray-900">Kitchen Display System</h1>
+                            {!modoDemonstracao && (
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5" />
+                                </button>
+                            )}
+                            <div className="flex items-center space-x-2">
+                                <ChefHat className="w-8 h-8 text-blue-600" />
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900">
+                                        {modoDemonstracao ? 'KDS - Demonstração' : 'Kitchen Display System'}
+                                    </h1>
+                                    {modoDemonstracao && (
+                                        <p className="text-sm text-gray-500">
+                                            Interface de demonstração da tela de serviço da cozinha
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex items-center space-x-4">
+                            {/* Status da conexão */}
+                            {!modoDemonstracao && (
+                                <div className="flex items-center space-x-2">
+                                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                                    <span className="text-sm text-gray-600">
+                                        {isConnected ? 'Conectado' : 'Desconectado'}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Auto refresh toggle */}
                             <button
                                 onClick={() => setAutoRefresh(!autoRefresh)}
-                                className={`flex items-center space-x-2 px-4 py-2 text-sm rounded-lg transition-colors ${autoRefresh
-                                    ? 'bg-green-100 text-green-800 border border-green-200'
-                                    : 'bg-gray-100 text-gray-800 border border-gray-200'
+                                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${autoRefresh
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-gray-100 text-gray-700'
                                     }`}
                             >
-                                {autoRefresh ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                                <span>{autoRefresh ? 'Pausar' : 'Ativar'} Auto-refresh</span>
+                                <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+                                <span className="text-sm font-medium">Auto Refresh</span>
                             </button>
 
+                            {/* Botão de atualizar */}
                             <button
-                                onClick={() => refetchPedidos()}
-                                className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                onClick={() => {
+                                    refetchPedidos();
+                                    refetchEstatisticas();
+                                    toast.success('Dados atualizados!');
+                                }}
+                                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                             >
-                                <RefreshCw className="h-4 w-4" />
-                                <span>Atualizar</span>
+                                <RefreshCw className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {/* Estatísticas */}
-                {estatisticas && (
+                {estatisticasExibidas && (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
                                 <div className="p-2 bg-blue-100 rounded-lg">
-                                    <Package className="h-6 w-6 text-blue-600" />
+                                    <Users className="w-6 h-6 text-blue-600" />
                                 </div>
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">Total de Pedidos</p>
-                                    <p className="text-2xl font-bold text-gray-900">{estatisticas.totalPedidos}</p>
+                                    <p className="text-sm font-medium text-gray-600">Pedidos Hoje</p>
+                                    <p className="text-2xl font-bold text-gray-900">{estatisticasExibidas.pedidosHoje}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
-                                <div className="p-2 bg-orange-100 rounded-lg">
-                                    <Clock className="h-6 w-6 text-orange-600" />
+                                <div className="p-2 bg-yellow-100 rounded-lg">
+                                    <Package className="w-6 h-6 text-yellow-600" />
                                 </div>
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">Em Preparo</p>
-                                    <p className="text-2xl font-bold text-gray-900">{estatisticas.pedidosPreparando}</p>
+                                    <p className="text-sm font-medium text-gray-600">Preparando</p>
+                                    <p className="text-2xl font-bold text-gray-900">{estatisticasExibidas.pedidosPreparando}</p>
                                 </div>
                             </div>
                         </div>
@@ -301,11 +373,11 @@ const KDS: React.FC = () => {
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
                                 <div className="p-2 bg-green-100 rounded-lg">
-                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                                    <CheckCircle className="w-6 h-6 text-green-600" />
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Prontos</p>
-                                    <p className="text-2xl font-bold text-gray-900">{estatisticas.pedidosProntos}</p>
+                                    <p className="text-2xl font-bold text-gray-900">{estatisticasExibidas.pedidosProntos}</p>
                                 </div>
                             </div>
                         </div>
@@ -313,11 +385,11 @@ const KDS: React.FC = () => {
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
                                 <div className="p-2 bg-purple-100 rounded-lg">
-                                    <Calendar className="h-6 w-6 text-purple-600" />
+                                    <Timer className="w-6 h-6 text-purple-600" />
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Tempo Médio</p>
-                                    <p className="text-2xl font-bold text-gray-900">{estatisticas.tempoMedioPreparo.toFixed(0)} min</p>
+                                    <p className="text-2xl font-bold text-gray-900">{estatisticasExibidas.tempoMedioPreparo}min</p>
                                 </div>
                             </div>
                         </div>
@@ -327,152 +399,149 @@ const KDS: React.FC = () => {
                 {/* Filtros */}
                 <div className="bg-white rounded-lg shadow mb-6">
                     <div className="p-6">
-                        <div className="flex items-center space-x-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Status
-                                </label>
-                                <select
-                                    value={filtroStatus}
-                                    onChange={(e) => setFiltroStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="todos">Todos os Status</option>
-                                    <option value="AguardandoPagamento">Aguardando Pagamento</option>
-                                    <option value="Pago">Pago</option>
-                                    <option value="Confirmado">Confirmado</option>
-                                    <option value="EmPreparo">Em Preparo</option>
-                                    <option value="Pronto">Pronto</option>
-                                    <option value="Entregue">Entregue</option>
-                                    <option value="Cancelado">Cancelado</option>
-                                </select>
-                            </div>
+                        <div className="flex flex-wrap gap-4">
+                            <button
+                                onClick={() => setFiltroStatus('todos')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroStatus === 'todos'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Todos ({pedidosExibidos.length})
+                            </button>
+                            <button
+                                onClick={() => setFiltroStatus('aguardando')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroStatus === 'aguardando'
+                                    ? 'bg-yellow-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Aguardando ({pedidosExibidos.filter((p: any) => p.status === 'aguardando').length})
+                            </button>
+                            <button
+                                onClick={() => setFiltroStatus('preparando')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroStatus === 'preparando'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Preparando ({pedidosExibidos.filter((p: any) => p.status === 'preparando').length})
+                            </button>
+                            <button
+                                onClick={() => setFiltroStatus('pronto')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroStatus === 'pronto'
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Prontos ({pedidosExibidos.filter((p: any) => p.status === 'pronto').length})
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Lista de Pedidos */}
-                <div className="bg-white rounded-lg shadow">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-medium text-gray-900">
-                            Pedidos ({pedidosFiltrados.length})
-                        </h2>
-                    </div>
-
-                    <div className="p-6">
-                        {pedidosLoading ? (
-                            <div className="text-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                <p className="text-gray-600">Carregando pedidos...</p>
-                            </div>
-                        ) : pedidosFiltrados.length === 0 ? (
-                            <div className="text-center py-8">
-                                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum pedido encontrado</h3>
-                                <p className="text-gray-600">
-                                    {filtroStatus !== 'todos'
-                                        ? 'Tente ajustar o filtro de status'
-                                        : 'Ainda não há pedidos para este evento'
-                                    }
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {pedidosFiltrados.map((pedido) => (
-                                    <div key={pedido.id} className={`border-2 rounded-lg p-6 hover:shadow-md transition-shadow ${getStatusColor(pedido.status.toString())}`}>
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-lg font-bold">
-                                                        #{pedido.numeroPedido}
-                                                    </h3>
-                                                    <span className="flex items-center space-x-1">
-                                                        {getStatusIcon(pedido.status.toString())}
-                                                        <span className="text-sm font-medium">{getStatusText(pedido.status.toString())}</span>
-                                                    </span>
-                                                </div>
-
-                                                <div className="space-y-1 text-sm">
-                                                    <div className="flex items-center space-x-2">
-                                                        <User className="h-4 w-4" />
-                                                        <span>{pedido.consumidorNome || 'Cliente não identificado'}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Calendar className="h-4 w-4" />
-                                                        <span>{new Date(pedido.dataCriacao).toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Clock className="h-4 w-4" />
-                                                        <span>{pedido.tempoEstimadoMinutos} min</span>
-                                                    </div>
-                                                </div>
-
-                                                {pedido.observacoes && (
-                                                    <div className="mt-2 text-sm">
-                                                        <strong>Observações:</strong> {pedido.observacoes}
-                                                    </div>
-                                                )}
+                <div className="space-y-4">
+                    {pedidosFiltrados.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum pedido encontrado</h3>
+                            <p className="text-gray-500">
+                                {filtroStatus === 'todos'
+                                    ? 'Não há pedidos no momento.'
+                                    : `Não há pedidos com status "${filtroStatus}".`
+                                }
+                            </p>
+                        </div>
+                    ) : (
+                        pedidosFiltrados.map((pedido: any) => (
+                            <div key={pedido.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="text-2xl font-bold text-gray-900">
+                                                #{pedido.numero}
                                             </div>
-
-                                            <div className="text-right">
-                                                <div className="text-lg font-bold">
-                                                    R$ {pedido.valorTotal.toFixed(2)}
+                                            <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(pedido.status)}`}>
+                                                <div className="flex items-center space-x-1">
+                                                    {getStatusIcon(pedido.status)}
+                                                    <span className="capitalize">{pedido.status}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Itens do Pedido */}
-                                        {pedido.itens && pedido.itens.length > 0 && (
-                                            <div className="mb-4">
-                                                <h4 className="text-sm font-medium mb-2">Itens:</h4>
-                                                <div className="space-y-1">
-                                                    {pedido.itens.map((item, index) => (
-                                                        <div key={index} className="flex justify-between text-sm">
-                                                            <span>{item.quantidade}x {item.produto?.nome || 'Produto'}</span>
-                                                            <span>R$ {item.precoTotal.toFixed(2)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                        <div className="flex items-center space-x-4">
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-600">Cliente</p>
+                                                <p className="font-medium text-gray-900">{pedido.cliente}</p>
                                             </div>
-                                        )}
-
-                                        {/* Ações */}
-                                        <div className="flex items-center space-x-2">
-                                            {pedido.status.toString() === 'Confirmado' && (
-                                                <button
-                                                    onClick={() => handleAtualizarStatus(pedido.id, 'EmPreparo')}
-                                                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                                                >
-                                                    <Package className="h-4 w-4" />
-                                                    <span>Iniciar Preparo</span>
-                                                </button>
-                                            )}
-
-                                            {pedido.status.toString() === 'EmPreparo' && (
-                                                <button
-                                                    onClick={() => handleMarcarPronto(pedido.id)}
-                                                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                                >
-                                                    <CheckCircle className="h-4 w-4" />
-                                                    <span>Marcar Pronto</span>
-                                                </button>
-                                            )}
-
-                                            {pedido.status.toString() === 'Pronto' && (
-                                                <button
-                                                    onClick={() => handleMarcarEntregue(pedido.id)}
-                                                    className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 text-sm bg-green-700 text-white rounded-lg hover:bg-green-800"
-                                                >
-                                                    <CheckCircle className="h-4 w-4" />
-                                                    <span>Marcar Entregue</span>
-                                                </button>
-                                            )}
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-600">Mesa</p>
+                                                <p className="font-medium text-gray-900">{pedido.mesa}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-600">Tempo</p>
+                                                <p className="font-medium text-gray-900">{formatarTempo(pedido.dataHora)}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm text-gray-600">Total</p>
+                                                <p className="font-medium text-gray-900">R$ {pedido.total.toFixed(2)}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => toggleDetalhes(pedido.id)}
+                                                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                            >
+                                                {mostrarDetalhes[pedido.id] ? (
+                                                    <EyeOff className="w-5 h-5" />
+                                                ) : (
+                                                    <Eye className="w-5 h-5" />
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
-                                ))}
+
+                                    {/* Detalhes dos itens */}
+                                    {mostrarDetalhes[pedido.id] && (
+                                        <div className="border-t pt-4">
+                                            <h4 className="font-medium text-gray-900 mb-3">Itens do Pedido</h4>
+                                            <div className="space-y-3">
+                                                {pedido.itens.map((item: any) => (
+                                                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center space-x-3">
+                                                                <span className="font-medium text-gray-900">{item.nome}</span>
+                                                                <span className="text-sm text-gray-500">x{item.quantidade}</span>
+                                                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                                                    {item.categoria}
+                                                                </span>
+                                                            </div>
+                                                            {item.observacoes && (
+                                                                <p className="text-sm text-gray-600 mt-1">
+                                                                    <strong>Obs:</strong> {item.observacoes}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center space-x-4">
+                                                            <div className="text-right">
+                                                                <p className="text-sm text-gray-600">Tempo</p>
+                                                                <p className="font-medium text-gray-900">{item.tempoPreparo}min</p>
+                                                            </div>
+                                                            <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(item.status)}`}>
+                                                                <div className="flex items-center space-x-1">
+                                                                    {getStatusIcon(item.status)}
+                                                                    <span className="capitalize">{item.status}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

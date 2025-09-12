@@ -56,7 +56,7 @@ const ConsumerApp: React.FC = () => {
         }
     }, [eventoId, eventoAtual, carregarEvento]);
 
-    // Redirecionar se não estiver logado ou se o evento não for o vinculado
+    // Redirecionar se não estiver logado
     useEffect(() => {
         if (!isAuthenticated) {
             navigate(`/evento/${eventoId}/login`, { replace: true });
@@ -129,6 +129,17 @@ const ConsumerApp: React.FC = () => {
                     >
                         Voltar ao início
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!eventoAtual) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando evento...</p>
                 </div>
             </div>
         );

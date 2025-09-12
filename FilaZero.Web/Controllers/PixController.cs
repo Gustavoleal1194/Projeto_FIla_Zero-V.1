@@ -8,7 +8,6 @@ namespace FilaZero.Web.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class PixController : ControllerBase
     {
         private readonly IPixService _pixService;

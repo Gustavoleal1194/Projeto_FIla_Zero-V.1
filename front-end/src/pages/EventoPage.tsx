@@ -1,76 +1,88 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEvent } from '../contexts/EventContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import {
+    ArrowLeft,
     ShoppingCart,
-    Menu,
+    User,
     Clock,
     MapPin,
-    Phone,
-    Mail,
-    ArrowLeft,
-    Users
+    Star,
+    Plus,
+    Minus,
+    Filter,
+    Search
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const EventoPage: React.FC = () => {
     const { eventoId } = useParams<{ eventoId: string }>();
     const navigate = useNavigate();
-    const { eventoAtual, loading, error, carregarEvento } = useEvent();
-    const { tema } = useTheme();
     const { isAuthenticated } = useAuth();
+    const { addItem, getTotalItems } = useCart();
+
+    const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
+    const [busca, setBusca] = useState('');
+
+    const { data: evento, isLoading: eventoLoading } = useQuery({
+        queryKey: ['evento', eventoId],
+        queryFn: () => apiService.getEvento(eventoId!),
+        enabled: !!eventoId
+    });
+
+    const { data: produtos, isLoading: produtosLoading } = useQuery({
+        queryKey: ['produtos', eventoId],
+        queryFn: () => apiService.getProdutos(eventoId!),
+        enabled: !!eventoId
+    });
+
+    const { data: categorias } = useQuery({
+        queryKey: ['categorias', eventoId],
+        queryFn: () => apiService.getCategoriasByEvento(eventoId!),
+        enabled: !!eventoId
+    });
 
     useEffect(() => {
-        if (eventoId) {
-            carregarEvento(eventoId);
+        if (!isAuthenticated) {
+            navigate('/login');
         }
-    }, [eventoId, carregarEvento]);
+    }, [isAuthenticated, navigate]);
 
-    if (loading) {
+    const handleAddToCart = (produto: any) => {
+        addItem(produto, 1);
+        toast.success(`${produto.nome} adicionado ao carrinho!`);
+    };
+
+    const produtosFiltrados = produtos?.filter(produto => {
+        const matchCategoria = filtroCategoria === 'todas' || produto.categoriaId === filtroCategoria;
+        const matchBusca = produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
+                          produto.descricao.toLowerCase().includes(busca.toLowerCase());
+        return matchCategoria && matchBusca;
+    });
+
+    if (eventoLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4"
-                        style={{ borderColor: tema.corPrimaria }}></div>
-                    <p className="text-gray-600">Carregando evento...</p>
-                </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    if (error) {
+    if (!evento) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Erro ao carregar evento</h1>
-                    <p className="text-gray-600 mb-4">{error}</p>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                        Evento não encontrado
+                    </h1>
                     <button
                         onClick={() => navigate('/')}
-                        className="px-6 py-2 rounded-lg text-white font-medium"
-                        style={{ backgroundColor: tema.corPrimaria }}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
                     >
-                        Voltar ao início
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    if (!eventoAtual) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="text-gray-400 text-6xl mb-4">📋</div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Evento não encontrado</h1>
-                    <p className="text-gray-600 mb-4">O evento que você está procurando não existe.</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-2 rounded-lg text-white font-medium"
-                        style={{ backgroundColor: tema.corPrimaria }}
-                    >
-                        Voltar ao início
+                        Voltar
                     </button>
                 </div>
             </div>
@@ -79,184 +91,136 @@ const EventoPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header do Evento */}
-            <div className="bg-white shadow-sm border-b">
+            {/* Header */}
+            <div className="bg-white shadow-sm sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center">
                             <button
                                 onClick={() => navigate('/')}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="mr-4 p-2 text-gray-600 hover:text-gray-900"
                             >
-                                <ArrowLeft className="h-5 w-5 text-gray-600" />
+                                <ArrowLeft className="w-6 h-6" />
                             </button>
-
-                            {eventoAtual.logoUrl && (
-                                <img
-                                    src={eventoAtual.logoUrl}
-                                    alt={eventoAtual.nome}
-                                    className="h-10 w-10 rounded-lg object-cover"
-                                />
-                            )}
-
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">{eventoAtual.nome}</h1>
-                                <p className="text-sm text-gray-500">{eventoAtual.cidade}, {eventoAtual.estado}</p>
+                                <h1 className="text-xl font-semibold text-gray-900">
+                                    {evento.nome}
+                                </h1>
+                                <p className="text-sm text-gray-500">
+                                    {evento.endereco}
+                                </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            {isAuthenticated && (
+                        <div className="flex items-center space-x-4">
                                 <button
-                                    onClick={() => navigate(`/evento/${eventoId}/pedidos`)}
-                                    className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium"
-                                    style={{ backgroundColor: tema.corSecundaria }}
-                                >
-                                    <Clock className="h-4 w-4" />
-                                    <span>Meus Pedidos</span>
+                                onClick={() => navigate(`/evento/${eventoId}/carrinho`)}
+                                className="relative p-2 text-gray-600 hover:text-gray-900"
+                            >
+                                <ShoppingCart className="w-6 h-6" />
+                                {getTotalItems() > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                        {getTotalItems()}
+                                    </span>
+                                )}
                                 </button>
-                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Conteúdo Principal */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Informações do Evento */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="flex items-start space-x-3">
-                            <MapPin className="h-5 w-5 text-gray-400 mt-1" />
-                            <div>
-                                <h3 className="font-medium text-gray-900">Endereço</h3>
-                                <p className="text-sm text-gray-600">{eventoAtual.endereco}</p>
-                                <p className="text-sm text-gray-600">{eventoAtual.cep}</p>
+                {/* Filtros */}
+                <div className="mb-8">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar produtos..."
+                                    value={busca}
+                                    onChange={(e) => setBusca(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
                             </div>
                         </div>
 
-                        {eventoAtual.telefone && (
-                            <div className="flex items-start space-x-3">
-                                <Phone className="h-5 w-5 text-gray-400 mt-1" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Telefone</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.telefone}</p>
+                        <div className="sm:w-48">
+                            <select
+                                value={filtroCategoria}
+                                onChange={(e) => setFiltroCategoria(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="todas">Todas as categorias</option>
+                                {categorias?.map((categoria: any) => (
+                                    <option key={categoria.id} value={categoria.id}>
+                                        {categoria.nome}
+                                    </option>
+                                ))}
+                            </select>
                                 </div>
                             </div>
-                        )}
-
-                        {eventoAtual.email && (
-                            <div className="flex items-start space-x-3">
-                                <Mail className="h-5 w-5 text-gray-400 mt-1" />
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Email</h3>
-                                    <p className="text-sm text-gray-600">{eventoAtual.email}</p>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
-                    {eventoAtual.descricao && (
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <h3 className="font-medium text-gray-900 mb-2">Sobre o evento</h3>
-                            <p className="text-sm text-gray-600">{eventoAtual.descricao}</p>
+                {/* Produtos */}
+                {produtosLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {produtosFiltrados?.map((produto) => (
+                            <div key={produto.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {produto.nome}
+                                        </h3>
+                                        <div className="flex items-center text-yellow-500">
+                                            <Star className="w-4 h-4 fill-current" />
+                                            <span className="ml-1 text-sm font-medium">4.5</span>
                         </div>
-                    )}
                 </div>
 
-                {/* Ações Principais */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Cardápio */}
-                    <button
-                        onClick={() => navigate(`/evento/${eventoId}/menu`)}
-                        className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
-                    >
-                        <div className="flex items-center space-x-4">
-                            <div
-                                className="p-3 rounded-lg"
-                                style={{ backgroundColor: tema.corPrimaria + '20' }}
-                            >
-                                <Menu className="h-6 w-6" style={{ color: tema.corPrimaria }} />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900 group-hover:text-gray-700">
-                                    Ver Cardápio
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    Explore nossos produtos e faça seu pedido
-                                </p>
+                                    <p className="text-gray-600 mb-4 line-clamp-2">
+                                        {produto.descricao}
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-2xl font-bold text-green-600">
+                                            R$ {produto.preco.toFixed(2)}
+                                        </span>
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <Clock className="w-4 h-4 mr-1" />
+                                            <span>{produto.tempoPreparoMinutos} min</span>
                             </div>
                         </div>
-                    </button>
 
-                    {/* Carrinho */}
                     <button
-                        onClick={() => navigate(`/evento/${eventoId}/carrinho`)}
-                        className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
-                    >
-                        <div className="flex items-center space-x-4">
-                            <div
-                                className="p-3 rounded-lg"
-                                style={{ backgroundColor: tema.corSecundaria + '20' }}
-                            >
-                                <ShoppingCart className="h-6 w-6" style={{ color: tema.corSecundaria }} />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900 group-hover:text-gray-700">
-                                    Meu Carrinho
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    Revise seus itens antes de finalizar
-                                </p>
+                                        onClick={() => handleAddToCart(produto)}
+                                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Adicionar ao Carrinho
+                                    </button>
                             </div>
                         </div>
-                    </button>
+                        ))}
+                    </div>
+                )}
 
-                    {/* Pedidos (apenas se autenticado) */}
-                    {isAuthenticated && (
-                        <button
-                            onClick={() => navigate(`/evento/${eventoId}/pedidos`)}
-                            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
-                        >
-                            <div className="flex items-center space-x-4">
-                                <div
-                                    className="p-3 rounded-lg"
-                                    style={{ backgroundColor: tema.corPrimaria + '20' }}
-                                >
-                                    <Clock className="h-6 w-6" style={{ color: tema.corPrimaria }} />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-900 group-hover:text-gray-700">
-                                        Meus Pedidos
+                {produtosFiltrados?.length === 0 && !produtosLoading && (
+                    <div className="text-center py-12">
+                        <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            Nenhum produto encontrado
                                     </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Acompanhe seus pedidos em tempo real
+                        <p className="text-gray-500">
+                            Tente ajustar os filtros ou buscar por outros termos.
                                     </p>
                                 </div>
-                            </div>
-                        </button>
-                    )}
-                </div>
-
-                {/* Status do Evento */}
-                <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: eventoAtual.ativo ? '#10B981' : '#EF4444' }}
-                            ></div>
-                            <span className="font-medium text-gray-900">
-                                {eventoAtual.ativo ? 'Evento ativo' : 'Evento inativo'}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
-                            <Users className="h-4 w-4" />
-                            <span>Online agora</span>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

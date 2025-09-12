@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     User,
@@ -13,55 +13,79 @@ import {
 } from 'lucide-react';
 
 const DemoLogin: React.FC = () => {
-    const { login } = useAuth();
+    const { loginCpf } = useAuth();
+    const navigate = useNavigate();
 
-    const handleDemoLogin = async (email: string, senha: string) => {
-        const success = await login({ email, senha });
-        if (success) {
-            // O redirecionamento será feito automaticamente pelo AuthContext
+    const handleDemoLogin = async (demo: any) => {
+        try {
+            // Fazer login automático como consumidor com CPF
+            await loginCpf(demo.cpf, demo.eventoId);
+
+            // Redirecionar para o evento após login
+            navigate(`/evento/${demo.eventoId}`);
+        } catch (error) {
+            console.error('Erro ao fazer login demo:', error);
+            // Em caso de erro, redirecionar mesmo assim
+            navigate(`/evento/${demo.eventoId}`);
         }
     };
 
     const demos = [
         {
             id: '1',
-            nome: 'Festival de Música Rock',
-            descricao: 'Gestor do evento de rock',
-            email: 'joao@festivalrock.com',
-            senha: '123456',
+            nome: '🎸 Festival Rock Underground',
+            descricao: 'Demo público - acesso automático',
+            cpf: '123.456.789-00',
+            codigoPulseira: '123456',
             cor: '#FF6B35',
             icon: <Music className="w-8 h-8" />,
-            features: ['Gestão completa', 'Dashboard em tempo real', 'Relatórios avançados']
+            features: ['Acesso automático', 'Gestão completa', 'Dashboard em tempo real', 'Relatórios avançados'],
+            eventoId: '11111111-1111-1111-1111-111111111111',
+            tema: 'rock',
+            imagem: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop',
+            cardapio: ['Hambúrguer Rock', 'Batata Frita Crocante', 'Cerveja Artesanal', 'Refrigerante', 'Água']
         },
         {
             id: '2',
-            nome: 'Feira Gastronômica Gourmet',
-            descricao: 'Gestora do evento gastronômico',
-            email: 'maria@feiragourmet.com',
-            senha: '123456',
+            nome: '🍷 Feira Gourmet Premium',
+            descricao: 'Demo público - acesso automático',
+            cpf: '123.456.789-00',
+            codigoPulseira: '123456',
             cor: '#8B4513',
             icon: <ChefHat className="w-8 h-8" />,
-            features: ['Cardápio premium', 'Pedidos gourmet', 'Experiência única']
+            features: ['Acesso público', 'Cardápio premium', 'Pedidos gourmet', 'Experiência única'],
+            eventoId: '22222222-2222-2222-2222-222222222222',
+            tema: 'gourmet',
+            imagem: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=600&fit=crop',
+            cardapio: ['Risotto de Trufas', 'Salada Caesar Premium', 'Vinho Tinto Reserva', 'Sobremesa de Chocolate', 'Café Especial']
         },
         {
             id: '3',
-            nome: 'Cliente - Festival Rock',
-            descricao: 'Cliente do festival de rock',
-            email: 'pedro@cliente.com',
-            senha: '123456',
-            cor: '#FF6B35',
+            nome: '🎪 Festa Junina Tradicional',
+            descricao: 'Demo público - acesso automático',
+            cpf: '123.456.789-00',
+            codigoPulseira: '123456',
+            cor: '#FFD700',
             icon: <Users className="w-8 h-8" />,
-            features: ['Fazer pedidos', 'Acompanhar status', 'Histórico de pedidos']
+            features: ['Acesso público', 'Fazer pedidos', 'Acompanhar status', 'Histórico de pedidos'],
+            eventoId: '33333333-3333-3333-3333-333333333333',
+            tema: 'junina',
+            imagem: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop',
+            cardapio: ['Pé de Moleque', 'Pipoca Doce', 'Quentão', 'Cocada', 'Pamonha']
         },
         {
             id: '4',
-            nome: 'Cliente - Feira Gourmet',
-            descricao: 'Cliente da feira gastronômica',
-            email: 'ana@cliente.com',
-            senha: '123456',
-            cor: '#8B4513',
+            nome: '🎨 Festival de Arte & Cultura',
+            descricao: 'Demo público - acesso automático',
+            cpf: '123.456.789-00',
+            codigoPulseira: '123456',
+            cor: '#9B59B6',
             icon: <Star className="w-8 h-8" />,
-            features: ['Cardápio gourmet', 'Pedidos especiais', 'Experiência premium']
+            features: ['Acesso público', 'Cardápio artístico', 'Pedidos especiais', 'Experiência cultural'],
+            eventoId: '44444444-4444-4444-4444-444444444444',
+            tema: 'arte',
+            imagem: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop',
+            cardapio: ['Tapas Artesanais', 'Smoothie Colorido', 'Chá de Ervas', 'Biscoito Decorado', 'Água Infusada']
         }
     ];
 
@@ -84,36 +108,41 @@ const DemoLogin: React.FC = () => {
                     {demos.map((demo) => (
                         <div
                             key={demo.id}
-                            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+                            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
                         >
                             {/* Header do Card */}
                             <div
-                                className="h-32 flex items-center justify-center text-white"
+                                className="h-32 flex items-center justify-center text-white relative overflow-hidden"
                                 style={{ backgroundColor: demo.cor }}
                             >
-                                <div className="text-center">
+                                {/* Imagem de fundo */}
+                                <div
+                                    className="absolute inset-0 bg-cover bg-center opacity-30"
+                                    style={{ backgroundImage: `url(${demo.imagem})` }}
+                                ></div>
+                                <div className="text-center relative z-10">
                                     {demo.icon}
-                                    <h3 className="text-lg font-bold mt-2">{demo.nome}</h3>
+                                    <h3 className="text-lg font-bold mt-2 drop-shadow-lg">{demo.nome}</h3>
                                 </div>
                             </div>
 
                             {/* Conteúdo do Card */}
-                            <div className="p-6">
+                            <div className="p-6 flex-1 flex flex-col">
                                 <p className="text-gray-600 mb-4">{demo.descricao}</p>
 
                                 <div className="space-y-2 mb-6">
                                     <div className="flex items-center text-sm text-gray-500">
-                                        <Mail className="w-4 h-4 mr-2" />
-                                        <span className="font-mono text-xs">{demo.email}</span>
+                                        <User className="w-4 h-4 mr-2" />
+                                        <span className="font-mono text-xs">CPF: {demo.cpf}</span>
                                     </div>
                                     <div className="flex items-center text-sm text-gray-500">
                                         <Lock className="w-4 h-4 mr-2" />
-                                        <span className="font-mono text-xs">{demo.senha}</span>
+                                        <span className="font-mono text-xs">Pulseira: {demo.codigoPulseira}</span>
                                     </div>
                                 </div>
 
                                 {/* Features */}
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <h4 className="font-semibold text-gray-900 mb-2">Funcionalidades:</h4>
                                     <ul className="space-y-1">
                                         {demo.features.map((feature, index) => (
@@ -125,16 +154,33 @@ const DemoLogin: React.FC = () => {
                                     </ul>
                                 </div>
 
+                                {/* Cardápio do Evento */}
+                                <div className="mb-6">
+                                    <h4 className="font-semibold text-gray-900 mb-2">🍽️ Cardápio:</h4>
+                                    <div className="flex flex-wrap gap-1">
+                                        {demo.cardapio.map((item, index) => (
+                                            <span
+                                                key={index}
+                                                className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
+                                            >
+                                                {item}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {/* Botão de Login */}
-                                <button
-                                    onClick={() => handleDemoLogin(demo.email, demo.senha)}
-                                    className="w-full flex items-center justify-center px-4 py-2 rounded-lg text-white font-medium transition-colors"
-                                    style={{ backgroundColor: demo.cor }}
-                                >
-                                    <User className="w-4 h-4 mr-2" />
-                                    Fazer Login
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </button>
+                                <div className="mt-auto">
+                                    <button
+                                        onClick={() => handleDemoLogin(demo)}
+                                        className="w-full flex items-center justify-center px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                                        style={{ backgroundColor: demo.cor }}
+                                    >
+                                        <User className="w-4 h-4 mr-2" />
+                                        Acessar Evento
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}

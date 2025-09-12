@@ -6,13 +6,14 @@ import {
     Usuario,
     Evento,
     Produto,
+    Categoria,
     Pedido,
-    CriarPedidoRequest,
     ApiResponse
 } from '../types';
 
 class ApiService {
     private api: AxiosInstance;
+
 
     constructor() {
         this.api = axios.create({
@@ -126,6 +127,10 @@ class ApiService {
     async atualizarStatusPedido(id: string, status: string): Promise<Pedido> {
         const response: AxiosResponse<ApiResponse<Pedido>> = await this.api.patch(`/pedidos/${id}/status`, { status });
         return response.data.data!;
+    }
+
+    async marcarPedidoEntregue(pedidoId: string): Promise<void> {
+        await this.api.patch(`/kds/pedido/${pedidoId}/entregue`);
     }
 
     // KDS (Kitchen Display System)

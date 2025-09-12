@@ -257,7 +257,7 @@ export class PaymentService {
                 console.log('❌ Erro na resposta PIX:', response);
                 return {
                     success: false,
-                    status: 'rejected',
+                    status: 'rejected' as const,
                     message: response.message || 'Erro ao gerar PIX'
                 };
             }

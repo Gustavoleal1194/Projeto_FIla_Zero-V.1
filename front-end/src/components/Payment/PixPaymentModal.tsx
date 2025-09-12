@@ -28,6 +28,8 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
     const [timeLeft, setTimeLeft] = useState(120); // 2 minutos em segundos
     const [isExpired, setIsExpired] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
 
     // Timer countdown
     useEffect(() => {
@@ -50,6 +52,29 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
 
         return () => clearInterval(timer);
     }, [isOpen, onCancel]);
+
+    // Função para lidar com tentativa de fechamento
+    const handleCloseAttempt = () => {
+        if (isPaymentCompleted) {
+            // Se pagamento foi concluído, pode fechar normalmente
+            onClose();
+        } else {
+            // Se pagamento não foi concluído, mostrar confirmação
+            setShowCancelConfirm(true);
+        }
+    };
+
+    // Função para confirmar cancelamento
+    const handleConfirmCancel = () => {
+        setShowCancelConfirm(false);
+        onCancel();
+    };
+
+    // Função para cancelar o cancelamento
+    const handleCancelCancel = () => {
+        setShowCancelConfirm(false);
+    };
+
 
     // Reset timer quando modal abre
     useEffect(() => {
@@ -89,14 +114,11 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
     };
 
     const handlePaymentConfirmed = () => {
+        setIsPaymentCompleted(true);
         onSuccess(transactionId);
         onClose();
     };
 
-    const handleCancel = () => {
-        onCancel();
-        onClose();
-    };
 
     if (!isOpen) return null;
 
@@ -116,7 +138,7 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
                             </div>
                         </div>
                         <button
-                            onClick={handleCancel}
+                            onClick={handleCloseAttempt}
                             className="text-gray-400 hover:text-gray-600 transition-colors"
                         >
                             <XCircle className="w-6 h-6" />
@@ -125,23 +147,23 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
 
                     {/* Timer */}
                     <div className={`mb-6 p-4 rounded-lg border-2 transition-colors ${timeLeft > 30
-                            ? 'bg-green-50 border-green-200'
-                            : timeLeft > 10
-                                ? 'bg-yellow-50 border-yellow-200'
-                                : 'bg-red-50 border-red-200'
+                        ? 'bg-green-50 border-green-200'
+                        : timeLeft > 10
+                            ? 'bg-yellow-50 border-yellow-200'
+                            : 'bg-red-50 border-red-200'
                         }`}>
                         <div className="flex items-center justify-center space-x-2">
                             <Clock className={`w-5 h-5 ${timeLeft > 30
-                                    ? 'text-green-600'
-                                    : timeLeft > 10
-                                        ? 'text-yellow-600'
-                                        : 'text-red-600'
+                                ? 'text-green-600'
+                                : timeLeft > 10
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
                                 }`} />
                             <span className={`text-lg font-bold ${timeLeft > 30
-                                    ? 'text-green-800'
-                                    : timeLeft > 10
-                                        ? 'text-yellow-800'
-                                        : 'text-red-800'
+                                ? 'text-green-800'
+                                : timeLeft > 10
+                                    ? 'text-yellow-800'
+                                    : 'text-red-800'
                                 }`}>
                                 {formatTime(timeLeft)}
                             </span>
@@ -184,8 +206,8 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
                                     onClick={handleCopyPixKey}
                                     disabled={copied}
                                     className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${copied
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
                                         }`}
                                 >
                                     {copied ? (
@@ -220,15 +242,15 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
                             onClick={handlePaymentConfirmed}
                             disabled={isExpired}
                             className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${isExpired
-                                    ? 'bg-gray-400 text-white cursor-not-allowed'
-                                    : 'bg-green-600 text-white hover:bg-green-700'
+                                ? 'bg-gray-400 text-white cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-700'
                                 }`}
                         >
                             {isExpired ? 'Tempo Esgotado' : '✅ Pagamento Realizado'}
                         </button>
 
                         <button
-                            onClick={handleCancel}
+                            onClick={handleCloseAttempt}
                             className="w-full py-2 px-4 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
                         >
                             ❌ Cancelar Pagamento
@@ -243,6 +265,39 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Confirmação de Cancelamento */}
+            {showCancelConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-sm w-full p-6 shadow-xl">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <XCircle className="w-8 h-8 text-yellow-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                Cancelar Pagamento?
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Tem certeza que deseja cancelar este pagamento? O pedido será cancelado e você precisará fazer um novo pedido.
+                            </p>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={handleCancelCancel}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Continuar Pagamento
+                                </button>
+                                <button
+                                    onClick={handleConfirmCancel}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    Sim, Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

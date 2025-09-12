@@ -19,7 +19,7 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
     const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
-    const [options, setOptions] = useState<QRCodeOptions>({
+    const [options] = useState<QRCodeOptions>({
         width: 300,
         margin: 2,
         color: {
